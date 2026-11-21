@@ -185,6 +185,42 @@ td.hl{background:var(--selBg);outline:2px solid var(--blue)}
 .idiomcard .main{flex:1;min-width:0}
 .idiomcard .w{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:18px;line-height:1.35}
 .idiomcard .d{font-size:14px;color:var(--dim);margin-top:1px;line-height:1.55}
+/* micro-step flow (chunk cards -> blanks -> vocab -> drill -> text) */
+.flowchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.flowchip{border-radius:999px;padding:3px 11px;font-family:"M PLUS Rounded 1c",sans-serif;font-size:12px;font-weight:800;color:#fff;background:var(--gray)}
+.flowchip.done{background:var(--green)}
+.flowchip.now{background:var(--purple)}
+.chunkcard{width:100%;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px;background:var(--surface);color:var(--text)}
+.chunkcard .cw{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:32px;line-height:1.35}
+.chunkcard .ci{margin-top:8px;border-radius:999px;background:var(--inset);padding:3px 14px;font-size:14px;color:var(--dim)}
+.chunkcard .cj{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:22px;line-height:1.45}
+.chunkcard .cn{margin-top:8px;font-size:14px;color:var(--dim);line-height:1.6;max-width:420px}
+.chunkcard .ch{margin-top:14px;font-size:14px;color:var(--dim)}
+.blankdisp{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:28px;line-height:1.5;margin-top:6px}
+.blankdisp .blank{color:var(--dim);border-bottom:3px dashed var(--orange);padding:0 12px}
+.stepcount{margin-top:10px;text-align:center;font-size:14px;color:var(--dim);font-weight:700}
+/* no visible scrollbar anywhere + learning screens fit one screen (100dvh) */
+html{scrollbar-width:none}
+*{-ms-overflow-style:none;scrollbar-width:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
+body.app-screen .langrow,body.app-screen .footer{display:none}
+body.app-screen .page{padding-bottom:0}
+/* learning screens: no internal scroll regions — each step is sized/paginated to fit one screen (100dvh incl. margins) */
+#lessonBody,#goalBody{overflow:visible;padding-bottom:16px}
+.pagenav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.pagenav .pcount{font-size:14px;color:var(--dim);font-weight:700}
+.textpager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.goaltabs{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.goaltab{flex:1;min-width:70px;background:var(--surface);color:var(--dim);padding:9px 6px;font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:13px;border-radius:12px}
+.goaltab.on{background:var(--purple);border-color:var(--purpleD);color:#fff}
+.goalnote{margin-top:12px;border-radius:12px;padding:10px 12px;background:var(--selBg);color:var(--chipAcTx);font-size:14px;line-height:1.6;font-weight:700}
+.textlocked{margin-top:16px;padding:14px 16px}
+.unittabs{display:flex;gap:8px;margin-top:12px}
+.unittab{flex:1;background:var(--surface);color:var(--dim);padding:9px 8px;font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:15px;border-radius:12px}
+.unittab.on{background:var(--blue);border-color:var(--blueD);color:#fff}
+.chunkcard{min-height:176px}
+.flashcard{min-height:200px}
+.goalnote2{margin-top:12px;border-radius:12px;padding:10px 12px;background:var(--quoteBg);border:2px solid var(--quoteBorder);font-size:14px;line-height:1.6}
 /* modest motion (honke-level) */
 .anim-step{animation:stepIn .28s ease both}
 .anim-pop{animation:popIn .35s ease both}
@@ -232,28 +268,31 @@ td.hl{background:var(--selBg);outline:2px solid var(--blue)}
       <button class="backbtn chunky" onclick="goHome()">← パス</button>
       <div><h1 id="unitTitle"></h1><p id="unitMeta"></p></div>
     </div>
-    <div class="card quotecard">
-      <p class="qt" id="quoteLabel">🎭 リブレットからの引用</p>
-      <p class="qf" id="unitQuote"></p>
-      <div id="unitGlossToggle"></div>
-      <button class="speakbtn chunky" id="quoteSpeak">🔊 台詞を聞く</button>
-      <p class="qs" id="unitNote"></p>
+    <div class="unittabs" role="tablist" aria-label="ユニット表示切替">
+      <button class="unittab chunky on" id="utabLesson" onclick="setUnitTab('lesson')">📚 レッスン</button>
+      <button class="unittab chunky" id="utabVocab" onclick="setUnitTab('vocab')">🔤 単語</button>
     </div>
-    <h2 class="sec">📚 レッスン</h2>
+    <div id="unitTabLesson">
+    <h2 class="sec">📚 レッスン — ①形 → ②単語 → ③ドリル → ④テクスト</h2>
     <div class="rows">
-      <button class="lessonrow chunky" style="background:var(--blue);border-color:var(--blueD)" onclick="startFlash()">
-        <span class="ic">🃏</span>
-        <span class="tt"><b>フラッシュカード</b><small id="flashSub">単語カードで意味を確認</small></span>
+      <button class="lessonrow chunky" style="background:var(--blue);border-color:var(--blueD)" onclick="startUnitFlow()">
+        <span class="ic">▶️</span>
+        <span class="tt"><b>レッスンを始める</b><small>形のカード → 単語練習 → クイズ → 最後にテクスト読解</small></span>
       </button>
-      <button class="lessonrow chunky" style="background:var(--orange);border-color:var(--orangeD)" onclick="startQuiz()">
+      <button class="lessonrow chunky" style="background:var(--orange);border-color:var(--orangeD)" onclick="startUnitQuiz()">
         <span class="ic">✏️</span>
-        <span class="tt"><b>クイズ</b><small>4択で意味をチェック ・ 60%以上でクリア</small></span>
+        <span class="tt"><b>クイズだけ</b><small>4択で意味をチェック ・ 60%以上でクリア</small></span>
         <span class="pill hidden" id="unitScoreBadge"></span>
       </button>
     </div>
     <p class="dim" id="unitScore" style="font-size:14px"></p>
     <div id="unitCleared"></div>
-    <div id="unitVocabSections"></div>
+    <div class="card textlocked">
+      <p style="margin:0;font-family:'M PLUS Rounded 1c',sans-serif;font-weight:800;font-size:15px">🎭 テクスト読解はレッスンの最後（④）</p>
+      <p class="dim" style="margin:4px 0 0;font-size:14px">テクストの文はここには出しません。「レッスンを始める」から進んで、①形 → ②単語 → ③ドリルのあと、最後に1文だけ読みます。</p>
+    </div>
+    </div>
+    <div id="unitVocabSections" class="hidden"></div>
   </section>
 
   <!-- GOAL DETAIL -->
@@ -421,7 +460,7 @@ var PL_GOALS=[
 {p:"jest mi gorąco",ja:"（私は）暑い",ipa:"/jɛst mi ɡɔˈrɔntʂɔ/"},
 {p:"jestem zmęczony",ja:"疲れている（男性）",ipa:"/ˈjɛstɛm zmɛnˈtʂɔnɨ/"},
 {p:"jestem głodny",ja:"お腹が空いている（男性）",ipa:"/ˈjɛstɛm ˈɡwɔdnɨ/"},
-{p:"To jest…",ja:"これは〜だ",ipa:"/tɔ jɛst/",say:"To jest",drill:"To jest"}]},
+{p:"To jest…",ja:"型： To jest ＿＿. ＝ これは＿＿だ。to は『これ』と指さす言葉。後ろの言葉が変わっても to の形は変わらない",ipa:"/tɔ jɛst/",say:"To jest",drill:"To jest"}]},
 {id:"pg2",ph:1,num:2,title:"移動の SV ＋ dokąd・天気の表現",grammar:"iść/chodzić, jechać, przychodzić の現在形",quote:"Dokąd idziesz? Idę nad rzekę.",quoteJa:"どこへ行くの？川へ行くところだ。（Gdzie lubi の語彙から）",lessons:["pl15","pl16","pl17"],idioms:[
 {p:"Dokąd idziesz?",ja:"どこへ行くの？",ipa:"/ˈdɔkɔnt ˈidʑɛʂ/"},
 {p:"Idę nad rzekę.",ja:"川へ行くところだ",ipa:"/ˈidɛ̃ nat ˈʐɛkɛ̃/"},
@@ -489,7 +528,7 @@ var FR_GLOSS={
 "très":["très","とても","/tʁɛ/","副詞"],"méchant":["méchant","意地悪な","/meʃɑ̃/","形容詞 f méchante"],"méchants":["méchant","意地悪な（複数）","/meʃɑ̃/","形容詞 複数"],"envie":["envie","〜したい気持ち","/ɑ̃vi/","名詞 f"],"aller":["aller","行く","/ale/","動詞 不規則"],"d'aller":["aller","行くこと","/dale/","de + aller"],"promener":["se promener","散歩する","/pʁɔmne/","動詞 -er"],"peur":["peur","恐怖","/pœʁ/","名詞 f"],"justement":["justement","ちょうど","/ʒystəmɑ̃/","副詞"],"pas":["pas","〜ない（否定）","/pa/","ne … pas の pas"],"faim":["faim","空腹","/fɛ̃/","名詞 f"],"faire":["faire","する・作る","/fɛʁ/","動詞 不規則"],"fait":["faire","した（過去分詞）","/fɛ/","faire の過去分詞"],"page":["page","ページ・宿題のページ","/paʒ/","名詞 f"],"mes":["mes","私の（複数）","/me/","所有形容詞"],"devoirs":["devoir","宿題（複数）","/dəvwaʁ/","名詞 m 複数"],"mettre":["mettre","置く・罰する","/mɛtʁ/","動詞 不規則"],"maman":["maman","ママ","/mamɑ̃/","名詞 f"],"pénitence":["pénitence","罰・お仕置き","/penitɑ̃s/","名詞 f"],"en":["en","〜の中で／それを","/ɑ̃/","前置詞・代名詞"],"ça":["ça","それ・あれ","/sa/","指示代名詞"],"égal":["égal","同じ・どうでもよい","/eɡal/","形容詞 f égale"],"et":["et","そして","/e/","接続詞"],"libre":["libre","自由な","/libʁ/","形容詞"],
 "du":["du","〜の（部分冠詞・de+le）","/dy/","冠詞"],"thé":["thé","お茶","/te/","名詞 m"],"sans":["sans","〜なしで","/sɑ̃/","前置詞"],"sucre":["sucre","砂糖","/sykʁ/","名詞 m"],"pain":["pain","パン","/pɛ̃/","名詞 m"],"sec":["sec","乾いた","/sɛk/","形容詞 f sèche"],"le":["le","その（定冠詞・男性）","/lə/","冠詞 m"],"la":["la","その（定冠詞・女性）／彼女を","/la/","冠詞 f・代名詞"],"les":["les","その（定冠詞・複数）","/le/","冠詞"],"fauteuil":["fauteuil","肘掛け椅子","/fotœj/","名詞 m"],"bergère":["bergère","羊飼い女／椅子","/bɛʁʒɛʁ/","名詞 f"],"ding":["ding","チーン（鐘の音）","/diŋ/","擬音"],"horloge":["horloge","置時計・掛時計","/ɔʁlɔʒ/","名詞 f"],"parle":["parler","話す（現在形）","/paʁl/","動詞 -er"],"temps":["temps","時間・天気","/tɑ̃/","名詞 m"],"wedgwood":["Wedgwood","ウェッジウッド（陶器の名）","","固有名詞"],"réchauffe":["réchauffer","温める（現在形）","/ʁeʃof/","動詞 -er"],"bons":["bon","良い（複数）","/bɔ̃/","形容詞 m 複数"],"bon":["bon","良い・善い","/bɔ̃/","形容詞 f bonne"],"brûle":["brûler","燃やす（現在形）","/bʁyl/","動詞 -er"],"mauve":["mauve","藤色の","/mov/","形容詞"],"vert":["vert","緑の","/vɛʁ/","形容詞 f verte"],"rose":["rose","バラ色の・バラ","/ʁoz/","形容詞・名詞 f"],"bleu":["bleu","青い","/blø/","形容詞 f bleue"],"conte":["conte","物語・おとぎ話","/kɔ̃t/","名詞 m"],"fées":["fée","妖精（複数）","/fe/","名詞 f"],"épée":["épée","剣","/epe/","名詞 f"],"cheveu":["cheveu","髪","/ʃəvø/","名詞 m"],"or":["or","金","/ɔʁ/","名詞 m"],"deux":["deux","2","/dø/","数詞"],"robinets":["robinet","蛇口（複数）","/ʁɔbinɛ/","名詞 m"],"coulent":["couler","流れる（現在形・複数）","/kul/","動詞 -er"],"dans":["dans","〜の中で","/dɑ̃/","前置詞"],"un":["un","1つの（不定冠詞・男性）","/œ̃/","冠詞 m"],"une":["une","1つの（不定冠詞・女性）","/yn/","冠詞 f"],"réservoir":["réservoir","貯水槽","/ʁezɛʁvwaʁ/","名詞 m"],"miaou":["miaou","ニャー（鳴き声）","/mjau/","擬音"],"duo":["duo","二重唱","/dɥo/","名詞 m"],"miaulé":["miauler","ニャーと鳴かれた","/mjole/","過去分詞"],"ah":["ah","ああ（感嘆）","/a/","間投詞"],"ma":["ma","私の（女性単数）","/ma/","所有形容詞"],"blessure":["blessure","傷","/blesyʁ/","名詞 f"],"arbre":["arbre","木","/aʁbʁ/","名詞 m"],"blessé":["blessé","傷ついた","/blese/","形容詞 f blessée"],"où":["où","どこに","/u/","疑問詞・関係詞"],"cherche":["chercher","探す（現在形）","/ʃɛʁʃ/","動詞 -er"],"rends-la-moi":["rendre","彼女を私に返して（命令）","/ʁɑ̃ la mwa/","命令形＋代名詞"],"rends":["rendre","返せ（命令形）","/ʁɑ̃/","動詞 -re"],"cage":["cage","籠・檻","/kaʒ/","名詞 f"],"prison":["prison","牢獄","/pʁizɔ̃/","名詞 f"],"seul":["seul","一人で・孤独な","/sœl/","形容詞 f seule"],"enfant":["enfant","子供","/ɑ̃fɑ̃/","名詞 m"],"au":["au","〜へ・〜に（à+le）","/o/","縮約"],"couteau":["couteau","ナイフ","/kuto/","名詞 m"],"pansé":["panser","手当てした（過去分詞）","/pɑ̃se/","動詞 -er"],"sa":["sa","彼の・彼女の（女性単数）","/sa/","所有形容詞"],"plaie":["plaie","傷口","/plɛ/","名詞 f"],"sage":["sage","行儀の良い・賢い","/saʒ/","形容詞"],"si":["si","もし〜なら","/si/","接続詞"],"manger":["manger","食べる","/mɑ̃ʒe/","動詞 -er"],"tous":["tous","全部の・みんな","/tus/","形容詞・代名詞"],"gâteaux":["gâteau","ケーキ（複数）","/ɡɑto/","名詞 m"],"rien":["rien","何も〜ない","/ʁjɛ̃/","代名詞"],"laissez-moi":["laisser","私に〜させて（命令形）","/lese mwa/","動詞 -er 命令"],"laissez":["laisser","〜させなさい（命令形 vous）","/lese/","動詞 -er"],"moins":["moins","より少なく","/mwɛ̃/","副詞"],"passer":["passer","通る・通り過ぎる","/pase/","動詞 -er"],"que":["que","〜こと・〜ように","/kə/","接続詞・関係代名詞"],"aille":["aller","行く（接続法）","/aj/","接続法現在"],"cacher":["cacher","隠す","/kaʃe/","動詞 -er"],"honte":["honte","恥","/ɔ̃t/","名詞 f"],"princesse":["princesse","姫","/pʁɛ̃sɛs/","名詞 f"],"qui":["qui","〜する（人・もの）","/ki/","関係代名詞・主語"],"dort":["dormir","眠っている（現在形）","/dɔʁ/","動詞 不規則"],"livre":["livre","本","/livʁ/","名詞 m"],"déchiré":["déchirer","引き裂いた（過去分詞）","/deʃiʁe/","動詞 -er"],"de":["de","〜の・〜から","/də/","前置詞"],"va":["aller","行く・元気だ（il の形）","/va/","aller 現在"],"vais":["aller","行く（je の形）","/vɛ/","aller 現在"],"bien":["bien","よく・元気に","/bjɛ̃/","副詞"]};
 var PL_GLOSS={
-"jestem":["być","（私は）〜である","/ˈjɛstɛm/","być 現在1人称"],"jest":["być","（彼は・それは）〜である","/jɛst/","być 現在3人称"],"jesteś":["być","（君は）〜である","/ˈjɛstɛɕ/","być 現在2人称"],"była":["być","（彼女は）〜だった","/ˈbɨwa/","być 過去・女性"],"to":["to","これ・それ","/tɔ/","指示詞"],"zmęczony":["zmęczony","疲れた","/zmɛnˈtʂɔnɨ/","形容詞 m"],"smutna":["smutny","悲しい（女性形）","/ˈsmutna/","形容詞 f"],"rzeka":["rzeka","川","/ˈʐɛka/","名詞 f"],"rzekę":["rzeka","川を・川へ（対格）","/ˈʐɛkɛ̃/","名詞 f 対格"],"rzeki":["rzeka","川の（生格）／川（複数）","/ˈʐɛki/","名詞 f"],"dokąd":["dokąd","どこへ","/ˈdɔkɔnt/","疑問詞"],"idziesz":["iść","（君が）行く","/ˈidʑɛʂ/","iść 現在2人称"],"idę":["iść","（私が）行く","/ˈidɛ̃/","iść 現在1人称"],"nad":["nad","〜の上へ・〜へ","/nat/","前置詞＋対格"],"na":["na","〜の上に・へ","/na/","前置詞"],"mam":["mieć","（私が）持っている","/mam/","mieć 現在1人称"],"ma":["mieć","（彼は）持っている","/ma/","mieć 現在3人称"],"ochotę":["ochota","〜したい気持ち（対格）","/ɔˈxɔtɛ̃/","名詞 f 対格"],"śpiewać":["śpiewać","歌う","/ˈɕpjɛvatɕ/","動詞 不完了体"],"czas":["czas","時間","/tʂas/","名詞 m"],"nadzieję":["nadzieja","望み・期待（対格）","/naˈdʑɛjɛ̃/","名詞 f 対格"],"i":["i","そして","/i/","接続詞"],"robię":["robić","（私が）する・作る","/ˈrɔbjɛ̃/","robić 現在1人称"],"śniadanie":["śniadanie","朝食","/ɕɲaˈdaɲɛ/","名詞 n"],"zakupy":["zakupy","買い物（複数）","/zaˈkupɨ/","名詞 複数"],"wydaje":["wydawać się","〜と思える","/vɨˈdajɛ/","動詞 現在3人称"],"mi":["ja","私に（与格・短形）","/mi/","代名詞 与格"],"się":["się","（再帰）〜自身","/ɕɛ̃/","再帰代名詞"],"że":["że","〜ということ","/ʐɛ/","接続詞"],"pada":["padać","（雨が）降る","/ˈpada/","動詞 現在3人称"],"deszcz":["deszcz","雨","/dɛʂtʂ/","名詞 m"],"dziękuję":["dziękować","ありがとう（と言う）","/dʑɛŋˈkujɛ̃/","動詞 現在1人称"],"ci":["ty","君に（与格・短形）","/tɕi/","代名詞 与格"],"chcę":["chcieć","（私が）〜したい","/xtʂɛ̃/","chcieć 現在1人称"],"muszę":["musieć","（私は）〜しなければならない","/ˈmuʂɛ̃/","musieć 現在1人称"],"czytać":["czytać","読む","/ˈtʂɨtatɕ/","動詞 不完了体"],"co":["co","何","/tʂɔ/","疑問詞"],"stało":["stać się","起こった","/ˈstawɔ/","stać się 過去・中性"],"śpiewałem":["śpiewać","（私・男性が）歌った","/ɕpjɛˈvawɛm/","過去形 男性1人称"],"śpiewał":["śpiewać","（彼が）歌った","/ˈɕpjɛvaw/","過去形 男性3人称"],"wczoraj":["wczoraj","昨日","/ˈftʂɔraj/","副詞"],"gdybym":["gdyby","もし（私は）〜なら","/ˈɡdɨbɨm/","接続詞＋by＋1人称"],"ja":["ja","私","/ja/","代名詞"],"słoneczkiem":["słoneczko","小さな太陽（造格）","/swɔˈɲɛtʂkʲɛm/","名詞 n 造格"],"niebie":["niebo","空（前置格）","/ˈɲɛbjɛ/","名詞 n 前置格"],"myślę":["myśleć","（私は）思う","/ˈmɨɕlɛ̃/","動詞 現在1人称"],"wiosna":["wiosna","春","/ˈvjɔsna/","名詞 f"],"żebyś":["żeby","君が〜するように","/ˈʐɛbɨɕ/","żeby＋2人称"],"cieszę":["cieszyć się","（私は）嬉しく思う","/ˈtʂɛʂɛ̃/","動詞 現在1人称"],"życzenie":["życzenie","願い","/ʐɨˈtʂɛɲɛ/","名詞 n"],"hulanka":["hulanka","酒盛り・どんちゃん騒ぎ","/xuˈlaŋka/","名詞 f"],"gdzie":["gdzie","どこ（で）","/ɡdʑɛ/","疑問詞"],"lubi":["lubić","（彼は）好きだ","/ˈlubi/","動詞 現在3人称"],"precz":["precz","消え去れ・向こうへ","/prɛtʂ/","副詞"],"z":["z","〜から・〜と","/z/","前置詞"],"moich":["mój","私の（生格・複数）","/ˈmɔix/","所有代名詞"],"oczu":["oko","目（生格・複数）","/ˈɔtʂu/","名詞 n"],"poseł":["poseł","使者","/ˈpɔsɛw/","名詞 m"],"śliczny":["śliczny","美しい・可愛い","/ˈɕlitʂnɨ/","形容詞 m"],"chłopiec":["chłopiec","少年","/ˈxwɔpjɛts/","名詞 m"],"melodia":["melodia","旋律","/mɛˈlɔdja/","名詞 f"],"wojak":["wojak","戦士","/ˈvɔjak/","名詞 m"],"dwojak":["dwojak","二つ・双子","/ˈdvɔjak/","名詞 m"],"narzeczony":["narzeczony","婚約者（男）","/naʐɛˈtʂɔnɨ/","名詞 m"],"piosnka":["piosnka","小歌","/ˈpjɔsŋka/","名詞 f"],"litewska":["litewski","リトアニアの（女性形）","/liˈtɛfska/","形容詞 f"],"dumka":["dumka","ドゥムカ（哀歌）","/ˈdumka/","名詞 f"],"moja":["mój","私の（女性形）","/ˈmɔja/","所有代名詞 f"],"pieszczotka":["pieszczotka","可愛い子（愛称）","/pjɛʂˈtʂɔtka/","名詞 f"],"nie":["nie","〜ない（否定）","/ɲɛ/","否定詞"],"czego":["co","何の・何が（生格）","/ˈtʂɛɡɔ/","疑問詞 生格"],"trzeba":["trzeba","必要だ","/ˈtʂɛba/","非人称表現"],"śmierć":["śmierć","死","/ɕmjɛrtɕ/","名詞 f"],"pieśni":["pieśń","歌（複数）","/ˈpjɛɕɲi/","名詞 f 複数"],"księżniczki":["księżniczka","姫（生格）／姫たち","/kɕɛ̃ʐˈɲitʂki/","名詞 f"],"baśni":["baśń","おとぎ話（生格）","/ˈbaɕɲi/","名詞 f"],"muezina":["muezin","ムアッジン（生格）","/muɛˈzina/","名詞 m"],"szalonego":["szalony","狂った（生格・男性形）","/ʂalɔˈnɛɡɔ/","形容詞 m 生格"],"słopiewnie":["słopiewnie","スウォピェヴニェ（造語の歌）","/swɔˈpjɛvɲɛ/","名詞 複数"],"rymy":["rym","韻・詩（複数）","/ˈrɨmɨ/","名詞 m 複数"],"dziecięce":["dziecięcy","子供の（複数形）","/dʑɛˈtɕɛntʂɛ/","形容詞"],"kurpiowskie":["kurpiowski","クルピエ地方の（複数形）","/kurˈpjɔfskʲɛ/","形容詞"],"słońce":["słońce","太陽","/ˈswɔɲtʂɛ/","名詞 n"],"oko":["oko","目","/ˈɔkɔ/","名詞 n"],"serce":["serce","心","/ˈsɛrtʂɛ/","名詞 n"],"kochać":["kochać","愛する","/ˈkɔxatɕ/","動詞"],"piękny":["piękny","美しい","/ˈpjɛŋknɨ/","形容詞 m"],"chcieć":["chcieć","欲する・〜したい","/xtɕɛtɕ/","動詞"]};
+"jestem":["być","（私は）〜である","/ˈjɛstɛm/","być 現在1人称"],"jest":["być","（彼は・それは）〜である","/jɛst/","być 現在3人称"],"jesteś":["być","（君は）〜である","/ˈjɛstɛɕ/","być 現在2人称"],"była":["być","（彼女は）〜だった","/ˈbɨwa/","być 過去・女性"],"to":["to","これ・それ","/tɔ/","to は『これ・それ』と指さす言葉。後ろの言葉が変わっても to 自体の形は変わらない"],"zmęczony":["zmęczony","疲れた","/zmɛnˈtʂɔnɨ/","形容詞 m"],"smutna":["smutny","悲しい（女性形）","/ˈsmutna/","形容詞 f"],"rzeka":["rzeka","川","/ˈʐɛka/","名詞 f"],"rzekę":["rzeka","川を・川へ","/ˈʐɛkɛ̃/","『〜を・〜へ』の形（対格という）。nad rzekę = 川の方へ"],"rzeki":["rzeka","川の／川（複数）","/ˈʐɛki/","『〜の』の形（生格という）にも、複数の形にもなる"],"dokąd":["dokąd","どこへ","/ˈdɔkɔnt/","疑問詞"],"idziesz":["iść","（君が）行く","/ˈidʑɛʂ/","iść 現在2人称"],"idę":["iść","（私が）行く","/ˈidɛ̃/","iść 現在1人称"],"nad":["nad","〜の上へ・〜へ","/nat/","前置詞＋対格"],"na":["na","〜の上に・へ","/na/","前置詞"],"mam":["mieć","（私が）持っている","/mam/","mieć 現在1人称"],"ma":["mieć","（彼は）持っている","/ma/","mieć 現在3人称"],"ochotę":["ochota","〜したい気持ち（対格）","/ɔˈxɔtɛ̃/","名詞 f 対格"],"śpiewać":["śpiewać","歌う","/ˈɕpjɛvatɕ/","動詞 不完了体"],"czas":["czas","時間","/tʂas/","名詞 m"],"nadzieję":["nadzieja","望み・期待（対格）","/naˈdʑɛjɛ̃/","名詞 f 対格"],"i":["i","そして","/i/","接続詞"],"robię":["robić","（私が）する・作る","/ˈrɔbjɛ̃/","robić 現在1人称"],"śniadanie":["śniadanie","朝食","/ɕɲaˈdaɲɛ/","名詞 n"],"zakupy":["zakupy","買い物（複数）","/zaˈkupɨ/","名詞 複数"],"wydaje":["wydawać się","〜と思える","/vɨˈdajɛ/","動詞 現在3人称"],"mi":["ja","私に（与格・短形）","/mi/","代名詞 与格"],"się":["się","（再帰）〜自身","/ɕɛ̃/","再帰代名詞"],"że":["że","〜ということ","/ʐɛ/","接続詞"],"pada":["padać","（雨が）降る","/ˈpada/","動詞 現在3人称"],"deszcz":["deszcz","雨","/dɛʂtʂ/","名詞 m"],"dziękuję":["dziękować","ありがとう（と言う）","/dʑɛŋˈkujɛ̃/","動詞 現在1人称"],"ci":["ty","君に（与格・短形）","/tɕi/","代名詞 与格"],"chcę":["chcieć","（私が）〜したい","/xtʂɛ̃/","chcieć 現在1人称"],"muszę":["musieć","（私は）〜しなければならない","/ˈmuʂɛ̃/","musieć 現在1人称"],"czytać":["czytać","読む","/ˈtʂɨtatɕ/","動詞 不完了体"],"co":["co","何","/tʂɔ/","疑問詞"],"stało":["stać się","起こった","/ˈstawɔ/","stać się 過去・中性"],"śpiewałem":["śpiewać","（私・男性が）歌った","/ɕpjɛˈvawɛm/","過去形 男性1人称"],"śpiewał":["śpiewać","（彼が）歌った","/ˈɕpjɛvaw/","過去形 男性3人称"],"wczoraj":["wczoraj","昨日","/ˈftʂɔraj/","副詞"],"gdybym":["gdyby","もし（私は）〜なら","/ˈɡdɨbɨm/","接続詞＋by＋1人称"],"ja":["ja","私","/ja/","代名詞"],"słoneczkiem":["słoneczko","小さな太陽として","/swɔˈɲɛtʂkʲɛm/","『〜として・〜で』の形（造格という）。była słoneczkiem = 太陽だった"],"niebie":["niebo","空に・空で","/ˈɲɛbjɛ/","場所を言う形（前置格という）。na niebie = 空に"],"myślę":["myśleć","（私は）思う","/ˈmɨɕlɛ̃/","動詞 現在1人称"],"wiosna":["wiosna","春","/ˈvjɔsna/","名詞 f"],"żebyś":["żeby","君が〜するように","/ˈʐɛbɨɕ/","żeby＋2人称"],"cieszę":["cieszyć się","（私は）嬉しく思う","/ˈtʂɛʂɛ̃/","動詞 現在1人称"],"życzenie":["życzenie","願い","/ʐɨˈtʂɛɲɛ/","名詞 n"],"hulanka":["hulanka","酒盛り・どんちゃん騒ぎ","/xuˈlaŋka/","名詞 f"],"gdzie":["gdzie","どこ（で）","/ɡdʑɛ/","疑問詞"],"lubi":["lubić","（彼は）好きだ","/ˈlubi/","動詞 現在3人称"],"precz":["precz","消え去れ・向こうへ","/prɛtʂ/","副詞"],"z":["z","〜から・〜と","/z/","前置詞"],"moich":["mój","私の（生格・複数）","/ˈmɔix/","所有代名詞"],"oczu":["oko","目（複数）の","/ˈɔtʂu/","『〜の』の形（生格という）の複数。oko の複数は不規則に変わる"],"poseł":["poseł","使者","/ˈpɔsɛw/","名詞 m"],"śliczny":["śliczny","美しい・可愛い","/ˈɕlitʂnɨ/","形容詞 m"],"chłopiec":["chłopiec","少年","/ˈxwɔpjɛts/","名詞 m"],"melodia":["melodia","旋律","/mɛˈlɔdja/","名詞 f"],"wojak":["wojak","戦士","/ˈvɔjak/","名詞 m"],"dwojak":["dwojak","二つ・双子","/ˈdvɔjak/","名詞 m"],"narzeczony":["narzeczony","婚約者（男）","/naʐɛˈtʂɔnɨ/","名詞 m"],"piosnka":["piosnka","小歌","/ˈpjɔsŋka/","名詞 f"],"litewska":["litewski","リトアニアの（女性形）","/liˈtɛfska/","形容詞 f"],"dumka":["dumka","ドゥムカ（哀歌）","/ˈdumka/","名詞 f"],"moja":["mój","私の（女性形）","/ˈmɔja/","所有代名詞 f"],"pieszczotka":["pieszczotka","可愛い子（愛称）","/pjɛʂˈtʂɔtka/","名詞 f"],"nie":["nie","〜ない（否定）","/ɲɛ/","否定詞"],"czego":["co","何の・何が","/ˈtʂɛɡɔ/","『何の』の形（生格という）。Nie ma czego trzeba = 必要なものがない"],"trzeba":["trzeba","必要だ","/ˈtʂɛba/","非人称表現"],"śmierć":["śmierć","死","/ɕmjɛrtɕ/","名詞 f"],"pieśni":["pieśń","歌（複数）","/ˈpjɛɕɲi/","名詞 f 複数"],"księżniczki":["księżniczka","姫（生格）／姫たち","/kɕɛ̃ʐˈɲitʂki/","名詞 f"],"baśni":["baśń","おとぎ話（生格）","/ˈbaɕɲi/","名詞 f"],"muezina":["muezin","ムアッジン（生格）","/muɛˈzina/","名詞 m"],"szalonego":["szalony","狂った（生格・男性形）","/ʂalɔˈnɛɡɔ/","形容詞 m 生格"],"słopiewnie":["słopiewnie","スウォピェヴニェ（造語の歌）","/swɔˈpjɛvɲɛ/","名詞 複数"],"rymy":["rym","韻・詩（複数）","/ˈrɨmɨ/","名詞 m 複数"],"dziecięce":["dziecięcy","子供の（複数形）","/dʑɛˈtɕɛntʂɛ/","形容詞"],"kurpiowskie":["kurpiowski","クルピエ地方の（複数形）","/kurˈpjɔfskʲɛ/","形容詞"],"słońce":["słońce","太陽","/ˈswɔɲtʂɛ/","名詞 n"],"oko":["oko","目","/ˈɔkɔ/","名詞 n"],"serce":["serce","心","/ˈsɛrtʂɛ/","名詞 n"],"kochać":["kochać","愛する","/ˈkɔxatɕ/","動詞"],"piękny":["piękny","美しい","/ˈpjɛŋknɨ/","形容詞 m"],"chcieć":["chcieć","欲する・〜したい","/xtɕɛtɕ/","動詞"]};
 
 // ---------- STATE ----------
 var KEY="langue_chansons_v1";
@@ -520,7 +559,7 @@ function speakWord(w){ // 見出し語だけを読み上げる（IPA・訳・注
 }
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function setLang(l){lang=l;document.getElementById("btnFR").className="langbtn"+(l==="fr"?" on-fr":"");document.getElementById("btnPL").className="langbtn"+(l==="pl"?" on-pl":"");curUnit=null;curG=null;curGoal=null;renderHome();}
-function show(id){["view-home","view-unit","view-lesson","view-goal"].forEach(function(v){var el=document.getElementById(v);var on=v===id;el.classList.toggle("hidden",!on);el.classList.remove("view-enter");if(on){void el.offsetWidth;el.classList.add("view-enter");}});window.scrollTo({top:0});}
+function show(id){["view-home","view-unit","view-lesson","view-goal"].forEach(function(v){var el=document.getElementById(v);var on=v===id;el.classList.toggle("hidden",!on);el.classList.remove("view-enter");if(on){void el.offsetWidth;el.classList.add("view-enter");}});document.body.classList.toggle("app-screen",id!=="view-home");window.scrollTo({top:0});}
 function goHome(){curGoal=null;renderHome();}
 function showGrammar(){if(curGoal){openGoal(curGoal.id);return;}renderHome();var el=document.getElementById("grammarArea");if(el)setTimeout(function(){el.scrollIntoView({behavior:"smooth",block:"start"});},60);}
 var OFFSETS=[0,48,84,48,0,-48,-84,-48];
@@ -543,7 +582,7 @@ function renderHome(){
   // ---- grammar section: 3 phases x 10 goals ----
   var GL=goals(),PH=phases();
   var PHASE_COLORS=["#46a302","#1899d6","#a560e0"],PHASE_DARKS=["#3a8602","#147cae","#8c4ec7"];
-  var gh='<div class="banner" style="background:var(--purple)"><h2>📖 文法カリキュラム — 3フェーズ × 10目標</h2><p>ゴール：テクストに出るB1以下の単語・文法を、注釈なしで読めて使えるようになること。各目標は「文法説明 → テクスト例文 → 慣用表現 → ドリル」の順で進み、前の目標をクリア（60%以上）すると次が開きます。クリア '+gcleared+' / '+GL.length+' 目標</p></div>';
+  var gh='<div class="banner" style="background:var(--purple)"><h2>📖 文法カリキュラム — 3フェーズ × 10目標</h2><p>ゴール：テクストに出るB1以下の単語・文法を、注釈なしで読めて使えるようになること。各目標は「①形の叩き込み → ②単語練習 → ③ドリル → ④テクスト読解（最後）」の順で進み、前の目標をクリア（60%以上）すると次が開きます。クリア '+gcleared+' / '+GL.length+' 目標</p></div>';
   PH.forEach(function(ph){
     gh+='<div class="banner" style="background:'+PHASE_COLORS[ph.n-1]+'"><h2>フェーズ'+ph.n+'：'+ph.title+'（'+ph.level+'）</h2><p>'+ph.desc+'</p><p>🎯 このフェーズのゴール：テクストに出るB1以下の単語・文法を注釈なしで読め、実用できるようになる</p></div><div class="rows">';
     GL.filter(function(g){return g.ph===ph.n}).forEach(function(g){
@@ -587,40 +626,39 @@ function genderBadge(v){
 }
 function genderColor(g){return g==="m"?"var(--blue)":(g==="f"?"var(--pink)":"var(--green)");}
 function genderPill(g){return '<span class="gpill" style="background:'+genderColor(g)+'">'+(lang==="fr"?(g==="m"?"男性":"女性"):(g==="m"?"男性":g==="f"?"女性":"中性"))+'</span>';}
+var unitVocabPage=0;
 function openUnit(id){
-  curUnit=units().find(function(u){return u.id===id});curG=null;curGoal=null;
+  curUnit=units().find(function(u){return u.id===id});curG=null;curGoal=null;unitVocabPage=0;
   show("view-unit");
   document.getElementById("unitTitle").textContent="Unit "+curUnit.id+" "+curUnit.title;
   document.getElementById("unitMeta").textContent=curUnit.part;
-  document.getElementById("quoteLabel").textContent=lang==="fr"?"🎭 リブレットからの引用":"🎭 歌詞からの引用";
-  document.getElementById("unitQuote").innerHTML=glossHTML(curUnit.quote);
-  document.getElementById("unitGlossToggle").innerHTML=glossToggleHTML();
-  var qs=document.getElementById("quoteSpeak");qs.textContent=lang==="fr"?"🔊 台詞を聞く":"🔊 歌詞を聞く";
-  qs.onclick=function(){speak(curUnit.quote);};
-  document.getElementById("unitNote").textContent=curUnit.note;
   var sc=st().done[curUnit.id]||0;
   var badge=document.getElementById("unitScoreBadge");
   if(sc>0){badge.classList.remove("hidden");badge.textContent="ベスト "+sc+"%";}else badge.classList.add("hidden");
   document.getElementById("unitScore").textContent=sc>=60?"前回スコア： "+sc+"% ・ クリア済み（再挑戦でもXPは加算されます）":(sc>0?"前回スコア： "+sc+"% ・ 60%以上で次ユニットが開きます":"未完了 — クイズで60%以上で次ユニットが開きます。");
   document.getElementById("unitCleared").innerHTML=sc>=60?'<p class="cleared-note">🎉 ユニットクリア！次のユニットがアンロックされました</p>':"";
-  document.getElementById("flashSub").textContent="単語カード "+curUnit.vocab.length+" 枚で意味を確認";
-  // vocab sections, always visible (honke style)
-  var nouns=curUnit.vocab.filter(function(v){return v.t==="noun"});
-  var verbs=curUnit.vocab.filter(function(v){return v.t==="verb"});
-  var rest=curUnit.vocab.filter(function(v){return v.t!=="noun"&&v.t!=="verb"});
-  var h="";
-  if(nouns.length){h+='<h2 class="sec">'+(lang==="fr"?"🔵🩷 名詞（男性=青 / 女性=ピンク）":"🔵🩷🟢 名詞（男性=青 / 女性=ピンク / 中性=緑）")+'</h2>'+nouns.map(function(v){
-    return '<div class="card wordcard" style="border-left:8px solid '+genderColor(v.g)+'"><div class="main"><span class="w">'+v.w+'</span>'+(v.g?genderPill(v.g):"")+'<p class="d">/'+v.ipa.replace(/\//g,"")+'/ ・ '+v.ja+(v.pl?' ・ 複数形 '+v.pl:"")+'</p>'+(v.caseTag?'<button class="casetag chunky" onclick="showGrammar()">🏷 '+v.caseTag+'</button>':"")+'</div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(v.w)+'\')">🔊</button></div>';
-  }).join("");}
-  if(verbs.length){h+='<h2 class="sec">🏃 動詞</h2>'+verbs.map(function(v){
-    return '<div class="card wordcard"><div class="main"><span class="w">'+v.w+'</span><p class="d">/'+v.ipa.replace(/\//g,"")+'/ ・ '+v.ja+(v.grp?' ・ '+v.grp+" 動詞":"")+'</p>'+(v.caseTag?'<button class="casetag chunky" onclick="showGrammar()">🏷 '+v.caseTag+'</button>':"")+'</div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(v.w)+'\')">🔊</button></div>';
-  }).join("");}
-  if(rest.length){h+='<h2 class="sec">🎨 形容詞・その他</h2>'+rest.map(function(v){
-    var title=v.fem?'<span style="color:var(--blue)">'+v.w+'</span> / <span style="color:var(--pink)">'+v.fem+'</span>':v.w;
-    return '<div class="card wordcard"><div class="main"><span class="w">'+title+'</span><p class="d">/'+v.ipa.replace(/\//g,"")+'/ ・ '+v.ja+'</p></div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(v.w)+'\')">🔊</button></div>';
-  }).join("");}
+  setUnitTab("lesson");
+  renderUnitVocab();
+}
+var UNIT_VOCAB_PER=3;
+function unitVocabCard(v){
+  if(v.t==="noun")return '<div class="card wordcard" style="border-left:8px solid '+genderColor(v.g)+'"><div class="main"><span class="w">'+v.w+'</span>'+(v.g?genderPill(v.g):"")+'<p class="d">/'+v.ipa.replace(/\//g,"")+'/ ・ '+v.ja+(v.pl?' ・ 複数形 '+v.pl:"")+'</p>'+(v.caseTag?'<button class="casetag chunky" onclick="showGrammar()">🏷 '+v.caseTag+'</button>':"")+'</div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(v.w)+'\')">🔊</button></div>';
+  if(v.t==="verb")return '<div class="card wordcard"><div class="main"><span class="w">'+v.w+'</span><p class="d">/'+v.ipa.replace(/\//g,"")+'/ ・ '+v.ja+(v.grp?' ・ '+v.grp+" 動詞":"")+'</p>'+(v.caseTag?'<button class="casetag chunky" onclick="showGrammar()">🏷 '+v.caseTag+'</button>':"")+'</div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(v.w)+'\')">🔊</button></div>';
+  var title=v.fem?'<span style="color:var(--blue)">'+v.w+'</span> / <span style="color:var(--pink)">'+v.fem+'</span>':v.w;
+  return '<div class="card wordcard"><div class="main"><span class="w">'+title+'</span><p class="d">/'+v.ipa.replace(/\//g,"")+'/ ・ '+v.ja+'</p></div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(v.w)+'\')">🔊</button></div>';
+}
+function renderUnitVocab(){
+  if(!curUnit)return;
+  var all=curUnit.vocab.slice();
+  var pages=Math.max(1,Math.ceil(all.length/UNIT_VOCAB_PER));
+  if(unitVocabPage>=pages)unitVocabPage=pages-1;if(unitVocabPage<0)unitVocabPage=0;
+  var slice=all.slice(unitVocabPage*UNIT_VOCAB_PER,unitVocabPage*UNIT_VOCAB_PER+UNIT_VOCAB_PER);
+  var h='<h2 class="sec">🔤 単語（'+all.length+'語）</h2><p class="dim" style="font-size:14px;margin:4px 0 0">'+(lang==="fr"?"名詞は男性=青 / 女性=ピンクで色分けしています。":"名詞は男性=青 / 女性=ピンク / 中性=緑で色分けしています。")+'</p>'
+    +slice.map(unitVocabCard).join("")
+    +'<div class="pagenav"><button class="navbtn chunky" '+(unitVocabPage<=0?"disabled":'onclick="setUnitVocabPage(-1)"')+'>← 前へ</button><span class="pcount">'+(unitVocabPage+1)+' / '+pages+' ページ</span><button class="navbtn chunky" '+(unitVocabPage>=pages-1?"disabled":'onclick="setUnitVocabPage(1)"')+'>次へ →</button></div>';
   document.getElementById("unitVocabSections").innerHTML=h;
 }
+function setUnitVocabPage(d){unitVocabPage+=d;renderUnitVocab();}
 // ---------- unit lesson: flashcards -> quiz (normal scroll, buttons in flow) ----------
 function lessonHead(tag,color,sub,title,pct){
   document.getElementById("lessonTag").textContent=tag;
@@ -692,6 +730,7 @@ function finishQuiz(){
   var pct=Math.round(lesson.score/lesson.qs.length*100);
   var prev=st().done[curUnit.id]||0; if(pct>prev)st().done[curUnit.id]=pct;
   save();
+  if(pendingTextStep){var tt2=pendingTextStep;pendingTextStep=null;renderTextStep(tt2);return;}
   lessonHead("✏️ クイズ","var(--orange)","Unit "+curUnit.id+" ・ "+curUnit.title,"",100);
   document.getElementById("lessonBody").innerHTML='<div class="donewrap anim-pop"><p class="em" style="margin:0">'+(lesson.score===lesson.qs.length?"🏆":pct>=60?"⭐":"💪")+'</p><h2>'+lesson.score+' / '+lesson.qs.length+' 正解！</h2><p>'+(pct>=60?"クリア条件（60%以上）達成！次のユニットがアンロックされました。":"クリア条件は60%以上。カードで復習してもう一度挑戦しよう。")+'</p><p class="xp">+'+ (lesson.score*10) +' XP ゲット！</p><button class="bigbtn chunky" style="background:var(--green);border-color:var(--greenD)" onclick="openUnit('+curUnit.id+')">ユニットに戻る</button><button class="ghostbtn chunky" onclick="startFlash()">もう一度練習する</button></div>';
 }
@@ -699,8 +738,9 @@ function finishQuiz(){
 var curG=null;
 function openGrammar(id){
   curG=grammars().find(function(g){return g.id===id});
-  lesson={kind:"grammar",phase:"explain",idx:0,score:0,total:5};
-  show("view-lesson");renderGrammarExplain();
+  if(!curG)return;
+  var textQuote=curG.ex||curG.title;
+  startFlow({title:curG.title,chunks:chunksForLesson(id),vocab:vocabForLesson(id),drill:"grammar",grammarObj:curG,text:{quote:textQuote,ja:curG.title,q:"この文は、どの決まりの例でしょう？"},back:curGoal?"goal":"grammar"});
 }
 function stepChips(active){
   var labels=["規則","例文","ドリル"];
@@ -961,7 +1001,7 @@ function renderDrill(){
   lessonHead("📖 文法入門","var(--purple)",curG.title,"",15+lesson.qIdx/Math.max(1,lesson.total)*85);
   var it=q.item;
   var stageNames=["ステップ1/3：まず選んでみよう（4択）","ステップ2/3：語尾だけ作ろう","ステップ3/3：全部自分で書こう"];
-  var body=stepChips(2)
+  var body=(FLOW?flowChips(2):stepChips(2))
     +'<div class="qcard card"><p class="qsub" style="margin:0 0 6px;font-weight:800;color:var(--purple)">'+stageNames[q.stage]+'</p>'
     +'<p class="qprompt" style="margin:0">'+it.prompt+'</p>';
   if(q.stage===0){
@@ -1017,6 +1057,7 @@ function nextDrill(){
   lesson.qIdx++;
   if(lesson.qIdx>=lesson.total){
     var denom=Math.max(1,lesson.attempts);var pct=Math.round(lesson.score/denom*100);
+    if(pendingTextStep){var tgt0=lesson.target||{type:"lesson",id:curG.id};var isGoal0=tgt0.type==="goal";if(pct>=60){if(isGoal0){if(!st().goals)st().goals={};var pv0=st().goals[tgt0.id]||0;if(pct>pv0)st().goals[tgt0.id]=pct;}else{var pv1=st().gdone[tgt0.id]||0;if(pct>pv1)st().gdone[tgt0.id]=pct;}st().xp+=lesson.score*10;save();}var tt=pendingTextStep;pendingTextStep=null;renderTextStep(tt);return;}
     var tgt=lesson.target||{type:"lesson",id:curG.id};var isGoal=tgt.type==="goal";
     if(pct>=60){if(isGoal){if(!st().goals)st().goals={};var prevG=st().goals[tgt.id]||0;if(pct>prevG)st().goals[tgt.id]=pct;}else{var prev=st().gdone[tgt.id]||0;if(pct>prev)st().gdone[tgt.id]=pct;}st().xp+=lesson.score*10;save();}
     lessonHead("📖 文法入門","var(--purple)",curG.title,"",100);
@@ -1033,6 +1074,8 @@ function addAccent(ch){var el=document.getElementById("drillInput");if(!el||el.d
 function norm(s){return (s||"").trim().toLowerCase().replace(/\s+/g," ");}
 function stripAcc(s){return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ł/g,"l").replace(/Ł/g,"L").replace(/œ/g,"oe").replace(/æ/g,"ae").replace(/đ/g,"d");}
 function cancelLesson(){
+  pendingTextStep=null;
+  if(lesson&&(lesson.kind==="flow"||lesson.kind==="textstep")){var bk=FLOW?FLOW.back:null;FLOW=null;if(bk==="goal"&&curGoal){openGoal(curGoal.id);return;}if(bk==="unit"&&curUnit){openUnit(curUnit.id);return;}if(bk==="grammar"){showGrammar();return;}goHome();return;}
   if(lesson&&lesson.kind==="goal"){if(curGoal)openGoal(curGoal.id);else goHome();}
   else if(lesson&&lesson.kind==="grammar"){showGrammar();}
   else if(curUnit){openUnit(curUnit.id);}
@@ -1050,29 +1093,59 @@ function goals(){return lang==="fr"?FR_GOALS:PL_GOALS}
 function phases(){return lang==="fr"?FR_PHASES:PL_PHASES}
 function goalDerived(g){var ls=g.lessons||[];if(!ls.length)return 0;var sum=0;ls.forEach(function(id){sum+=(st().gdone[id]||0);});return Math.round(sum/ls.length);}
 function goalScore(g){return Math.max((st().goals&&st().goals[g.id])||0,goalDerived(g));}
-function openGoal(id){var g=goals().find(function(x){return x.id===id});if(!g)return;curGoal=g;renderGoal();show("view-goal");}
+function openGoal(id){var g=goals().find(function(x){return x.id===id});if(!g)return;curGoal=g;goalTab="micro";goalIdiomPage=0;renderGoal();show("view-goal");}
 function leaveGoal(){curGoal=null;goHome();}
 function goalStepRow(lid,extra){
   var lo=grammars().find(function(x){return x.id===lid});if(!lo)return "";
   var pct=st().gdone[lid]||0,done=pct>=60;
-  return '<button class="lessonrow chunky" style="background:'+(done?"var(--green)":"var(--purple)")+';border-color:'+(done?"var(--greenD)":"var(--purpleD)")+'" onclick="openGrammar(\''+lid+'\')"><span class="ic">📖</span><span class="tt"><b>'+lo.title+(extra?' <span class="pill">関連</span>':"")+'</b><small>'+lo.desc+'</small></span>'+(pct>0?'<span class="pill">ベスト '+pct+'%</span>':"")+'</button>';
+  return '<button class="lessonrow chunky" style="background:'+(done?"var(--green)":"var(--purple)")+';border-color:'+(done?"var(--greenD)":"var(--purpleD)")+'" onclick="openGrammar(\''+lid+'\')"><span class="ic">📖</span><span class="tt"><b>'+lo.title+(extra?' <span class="pill">関連</span>':"")+'</b><small>'+plainDesc(lo)+'</small></span>'+(pct>0?'<span class="pill">ベスト '+pct+'%</span>':"")+'</button>';
 }
+function goalChunks(g){
+  var out=[],seen={};
+  (g.lessons||[]).concat(g.extra||[]).forEach(function(lid){chunksForLesson(lid).forEach(function(c){if(!seen[c.form]){seen[c.form]=1;out.push(c);}});});
+  (g.idioms||[]).forEach(function(idm){var f=idm.drill||idm.say||idm.p;if(!seen[f]){seen[f]=1;out.push({form:f,ja:idm.ja,ipa:idm.ipa||""});}});
+  return out.slice(0,20);
+}
+function startGoalFlow(fromPhase){
+  var g=curGoal;if(!g)return;
+  var firstLid=(g.lessons&&g.lessons[0])||(g.extra&&g.extra[0]);
+  var lo=firstLid?grammars().find(function(x){return x.id===firstLid}):null;
+  curG=lo||{id:g.id,title:"第"+g.num+"目標 "+g.title};
+  var vocab=(g.idioms||[]).map(function(idm){return {form:idm.p,ja:idm.ja,ipa:idm.ipa||"",say:idm.say||idm.drill||idm.p};});
+  if(!vocab.length&&firstLid)vocab=vocabForLesson(firstLid);
+  startFlow({title:"第"+g.num+"目標 "+g.title,chunks:goalChunks(g),vocab:vocab,drill:"goal",grammarObj:curG,text:{quote:g.quote,ja:g.quoteJa},back:"goal",fromPhase:fromPhase||"micro"});
+}
+var goalTab="micro",goalIdiomPage=0;
+function setGoalTab(t){goalTab=t;goalIdiomPage=0;renderGoal();}
+function setGoalIdiomPage(d){goalIdiomPage+=d;renderGoal();}
 function renderGoal(){
   var g=curGoal;if(!g)return;var ph=phases()[g.ph-1];var sc=goalScore(g);
   document.getElementById("goalTitle").textContent="第"+g.num+"目標 "+g.title;
   document.getElementById("goalMeta").textContent="フェーズ"+g.ph+"："+ph.title+"（"+ph.level+"）"+(sc>0?" ・ ベスト "+sc+"%"+(sc>=60?" ・ クリア済み ✓":" ・ 進行中"):"");
-  var h='<div class="goalnote">🎯 この目標を終えると、テクストの該当箇所を注釈なしで読め、表現を自分で使えるようになります。点線の単語は未習得の注釈つき — タップで意味が見られます。</div>';
-  h+='<h2 class="sec">① 文法説明 — '+g.grammar+'</h2>';
-  var steps=(g.lessons||[]).map(function(lid){return goalStepRow(lid,false);}).join("")+(g.extra||[]).map(function(lid){return goalStepRow(lid,true);}).join("");
-  if(steps)h+='<div class="rows">'+steps+'</div>';
-  else h+='<p class="dim" style="font-size:14px">この目標の文法（条件形）は今回が初出です。下のテクスト例文と慣用表現、ドリルで直接身につけます。</p>';
-  h+='<h2 class="sec">② テクスト例文</h2><div class="card quotecard"><p class="qt">🎭 テクストから</p><p class="qf">'+glossHTML(g.quote)+'</p>'+glossToggleHTML()+'<p class="qj">'+g.quoteJa+'</p><button class="speakbtn chunky" onclick="speak(\''+esc(g.quote)+'\')">🔊 例文を聞く</button></div>';
-  h+='<h2 class="sec">③ 追加の慣用表現</h2>'+(g.idioms||[]).map(function(idm){
-    return '<div class="card idiomcard"><div class="main"><span class="w">'+idm.p+'</span><p class="d">'+(idm.ipa||"")+' ・ '+idm.ja+'</p></div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(idm.say||idm.drill||idm.p)+'\')">🔊</button></div>';
-  }).join("");
-  h+='<h2 class="sec">④ ドリル</h2><p class="dim" style="font-size:14px;margin:6px 0 0">文法ドリルと慣用表現をまぜて出題します（4択 → 語尾 → 全文入力）。60%以上でクリアし、次の目標が開きます。</p><button class="bigbtn chunky" style="background:var(--purple);border-color:var(--purpleD)" onclick="startGoalDrill()">✏️ 目標ドリルをスタート</button>';
+  var tabs=[["micro","① 形"],["vocab","② 単語"],["drill","③ ドリル"],["text","④ テクスト"]];
+  var h='<div class="goalnote">🎯 ①形 → ②単語 → ③ドリル → ④テクスト（最後）の順に進みます。</div>';
+  h+='<button class="bigbtn chunky" style="background:var(--purple);border-color:var(--purpleD)" onclick="startGoalFlow(\'micro\')">▶️ レッスンを始める（①から）</button>';
+  h+='<div class="goaltabs" role="tablist" aria-label="目標のステップ切替">'+tabs.map(function(t){return '<button class="goaltab chunky'+(goalTab===t[0]?" on":"")+'" onclick="setGoalTab(\''+t[0]+'\')">'+t[1]+'</button>';}).join("")+'</div>';
+  if(goalTab==="micro"){
+    h+='<h2 class="sec">① 形の叩き込み — '+g.grammar+'</h2><p class="dim" style="font-size:14px;margin:4px 0 0">形をカードで1つずつ見て、すぐ空所補充で確認します。</p>';
+    var steps=(g.lessons||[]).map(function(lid){return goalStepRow(lid,false);}).join("")+(g.extra||[]).map(function(lid){return goalStepRow(lid,true);}).join("");
+    if(steps)h+='<div class="rows">'+steps+'</div>';
+    else h+='<p class="dim" style="font-size:14px">この目標の文法は今回が初出です。「レッスンを始める」から形のカードで身につけます。</p>';
+  }else if(goalTab==="vocab"){
+    var idms=g.idioms||[];var PER=3;var pages=Math.max(1,Math.ceil(idms.length/PER));
+    if(goalIdiomPage>=pages)goalIdiomPage=pages-1;if(goalIdiomPage<0)goalIdiomPage=0;
+    h+='<h2 class="sec">② 単語練習 — 慣用表現（'+idms.length+'件）</h2>';
+    h+=idms.slice(goalIdiomPage*PER,goalIdiomPage*PER+PER).map(function(idm){return '<div class="card idiomcard"><div class="main"><span class="w">'+idm.p+'</span><p class="d">'+(idm.ipa||"")+' ・ '+idm.ja+'</p></div><button class="speaksm chunky" aria-label="発音" onclick="speakWord(\''+esc(idm.say||idm.drill||idm.p)+'\')">🔊</button></div>';}).join("");
+    h+='<div class="pagenav"><button class="navbtn chunky" '+(goalIdiomPage<=0?"disabled":'onclick="setGoalIdiomPage(-1)"')+'>← 前へ</button><span class="pcount">'+(goalIdiomPage+1)+' / '+pages+' ページ</span><button class="navbtn chunky" '+(goalIdiomPage>=pages-1?"disabled":'onclick="setGoalIdiomPage(1)"')+'>次へ →</button></div>';
+    h+='<button class="ghostbtn chunky" onclick="startGoalFlow(\'vocab\')">🔤 単語練習から始める</button>';
+  }else if(goalTab==="drill"){
+    h+='<h2 class="sec">③ ドリル</h2><p class="dim" style="font-size:14px;margin:4px 0 0">4択 → 語尾穴埋め → 全文入力。60%以上でクリアし、次の目標が開きます。</p><button class="ghostbtn chunky" onclick="startGoalDrillOnly()">✏️ ドリルから始める</button>';
+  }else{
+    h+='<h2 class="sec">④ テクスト読解（最後）</h2><div class="card textlocked"><p style="margin:0;font-family:\'M PLUS Rounded 1c\',sans-serif;font-weight:800;font-size:15px">🎭 テクストはここには出しません</p><p class="dim" style="margin:4px 0 0;font-size:14px">文はレッスンの最終ステップでのみ表示されます。下のボタンから最終ステップへ進むと、文単位で読みます。</p></div><button class="ghostbtn chunky" onclick="startGoalFlow(\'text\')">🎭 テクスト読解へ（最終ステップ）</button>';
+  }
   document.getElementById("goalBody").innerHTML=h;
 }
+function startGoalDrillOnly(){var g=curGoal;if(!g)return;pendingTextStep={quote:g.quote,ja:g.quoteJa};FLOW={title:"第"+g.num+"目標 "+g.title,text:pendingTextStep,back:"goal"};show("view-lesson");startGoalDrill();}
 // ---------- gloss (annotations on text words) ----------
 var glossMode="unlearned", glossReg=[];
 function normKey(s){return (s||"").toLowerCase().replace(/^[«»"“”.,!?;:…()\[\]]+|[«»"“”.,!?;:…()\[\]]+$/g,"");}
@@ -1106,6 +1179,7 @@ function glossToggleHTML(){
 }
 function setGlossMode(m){
   glossMode=m;closeGloss();
+  if(lesson&&lesson.kind==="textstep"&&lesson.text){var tt=lesson.text;renderTextStep(tt);return;}
   var gv=document.getElementById("view-goal");
   if(curGoal&&gv&&!gv.classList.contains("hidden")){renderGoal();return;}
   var uv=document.getElementById("view-unit");
@@ -1118,6 +1192,318 @@ function showGlossIdx(i){
 }
 function closeGloss(){var p=document.getElementById("glossPop");if(p)p.classList.add("hidden");}
 
+// ---------- plain-language notes (jargon always rephrased in the same line, max 2 lines) ----------
+var PLAIN={
+f01:"音の決まり。an/en は鼻にかかる /ɑ̃/、on は /ɔ̃/、in は /ɛ̃/。例： envie（気持ち）の an。母音の前では je + ai → j'ai のように縮む。",
+f02:"『その〜』の言葉。男の言葉には le、女の言葉には la、複数には les。例： le fauteuil（その肘掛け椅子）、la page（そのページ）。",
+f03:"『1つの〜』の言葉。男は un、女は une、複数は des。複数は語尾に -s が付くのが基本。例： un livre → des livres（本 → 本たち）。",
+f04:"『〜です・〜がある』の土台の動詞。主語ごとに形が変わる。型： je suis ＿＿. ＝ 私は＿＿です。例： Je suis seul.（私は一人だ）",
+f05:"-er で終わる動詞の今の形。語幹（変わらない部分）＋主語ごとの語尾。型： je parl- ＋ e ＝ je parle（私は話す）。",
+f06:"『〜ない』の言い方。動詞を ne と pas で挟む。型： Je ne fais pas ＿＿. ＝ 私は＿＿をしない。話し言葉では ne が落ちる。",
+f07:"質問の作り方。Est-ce que ＋ 普通の文 で『〜ですか？』。où ＝ どこ、pourquoi ＝ なぜ、qui ＝ 誰、quand ＝ いつ。",
+f08:"finir 型（-ir）の今の形。複数では -iss- が入るのが目印。型： nous fin- ＋ issons ＝ nous finissons（私たちは終える）。",
+f09:"vendre 型（-re）の今の形。il の形は語尾が付かない。型： je vend- ＋ s ＝ je vends（私は売る）。",
+f10:"形がバラバラに変わる大事な動詞たち。aller（行く）・faire（する）・venir（来る）などは、形をそのまま覚える。",
+f11:"形容詞（ものの様子を言う言葉）は、指す言葉に合わせて形を変える。型： un chat méchant ／ une chatte méchante（意地悪な猫）。",
+f12:"『私の・君の』と『この・これらの』。物の性に合わせて選ぶ。型： mon livre（私の本・男）／ ma page（私のページ・女）。",
+f13:"『（数えられないものの）少しの〜』。男は du、女は de la。型： du thé（お茶を少し）。『たくさんの』の後は de だけ。",
+f14:"à（〜へ）と de（〜の）が冠詞とくっついた形。à + le ＝ au、de + le ＝ du。例： l'enfant au couteau（ナイフを持った子供）。",
+f15:"『〜するところ・〜したばかり』。型： je vais ＋ 動詞の原形 ＝ 〜するところ。je viens de ＋ 原形 ＝ 〜したばかり。",
+f16:"『〜した』（終わった出来事）。avoir の今の形 ＋ 過去の形。型： Il a pansé ＿＿. ＝ 彼は＿＿を手当てした。",
+f17:"『〜していた』（続いていた様子・背景）。語尾は -ais など。終わった出来事の複合過去と使い分ける。例： Tu me cherchais.（探していた）",
+f18:"『〜するだろう』（未来）。動詞の原形 ＋ -ai などの語尾。型： je parler- ＋ ai ＝ je parlerai（私は話すだろう）。",
+f19:"命令の形（『〜して！』）。主語は言わない。目的語は後ろにくっつける。例： Rends-la-moi !（それを私に返して！）",
+f20:"『彼を・彼女を・そこへ』などの短い言葉は動詞の前に置く。型： Je te cherche. ＝ 私は君を探す（te ＝ 君を）。",
+f21:"比べる言い方。plus ＿＿ que ＿＿ ＝ ＿＿より＿＿だ。bon（良い）の比べ形は meilleur と形ごと変わる。",
+f22:"『〜だろう・〜したいのですが』という柔らかい言い方。未来の語幹 ＋ 半過去の語尾。例： Je voudrais du thé.（お茶をいただきたい）",
+f23:"2つの文をつなぐ言葉。qui ＝ 〜する（人・もの）、que ＝ 〜するのを、où ＝ 〜する所。例： la princesse qui dort（眠る姫）。",
+pl1:"音の決まり。rz は /ʐ/、cz は /tʂ/、sz は /ʂ/、ł は /w/ の音。例： rzeka（川）は『ジェカ』に近い音で読む。",
+pl2:"言葉には男・女・中性の3つのグループがある。語尾で見分ける。例： rzeka（川）は -a で終わる女の言葉。",
+pl3:"複数の形。主格（『〜は』の形）の複数は -i / -y / -a など。例： rzeka → rzeki（川 → 川たち）。",
+pl4:"形容詞（様子を言う言葉）は、指す言葉のグループに合わせる。型： smutn- ＋ a ＝ smutna rzeka（悲しい川・女）。",
+pl5:"言葉の形は文の中の役割で変わる（格という）。『〜は』『〜の』『〜を』などで7通りに変わる。例： oczu ＝ 目（複数）の。",
+pl6:"『〜の』の形（生格という）。持主・否定・『〜がない』で使う。型： rzek- ＋ i ＝ rzeki（川の）。否定の後はこの形になる。",
+pl7:"『〜を』の形（対格という）。男の言葉は、生き物なら『〜の』の形と同じ、物なら『〜は』の形と同じ。例： widzę chłopca（少年を見る）。",
+pl8:"『〜と一緒に・〜で（道具）』の形（造格という）。z ＋ この形。型： z mamą（お母さんと）、piszę ołówkiem（鉛筆で書く）。",
+pl9:"『〜の中で・〜の上で』（場所）の形（前置格という）。w / na の後で使う。型： w domu（家の中で）、na rzece（川の上で）。",
+pl10:"『〜に（あげる相手）』の形（与格という）。型： daję mamie（お母さんにあげる）、pomagam chłopcu（少年を助ける）。",
+pl11:"呼びかけの形（呼格という）。名前を呼ぶときだけ使う。例： Mamo !（お母さん！）、Chłopcze !（少年！）。",
+pl12:"複数の形の変化まとめ。複数では男・女・中性の差が小さくなる。例： rzek（川たち・の）、oczu（目たち・の）。",
+pl13:"形容詞も名詞と一緒に形を変える。型： smutna rzeka → smutnej rzeki（悲しい川 → 悲しい川の）。",
+pl14:"前置詞（場所や方向を言う短い言葉）ごとに、後ろの言葉の形が決まる。do ＝ 『〜の』の形、方向の na ＝ 『〜を』の形。",
+pl15:"-am / -asz 型の今の形。語幹 ＋ 主語ごとの語尾。型： kocha- ＋ m ＝ kocham（私は愛する）、kocha- ＋ sz ＝ kochasz。",
+pl16:"-ę / -esz 型の今の形。語幹が少し変わる。型： pisz- ＋ ę ＝ piszę（私は書く）、pisz- ＋ esz ＝ piszesz。",
+pl17:"-isz / -ysz 型と -ować 型の今の形。型： mówi- ＋ ę ＝ mówię（私は話す）、prac- ＋ uję ＝ pracuję（私は働く）。",
+pl18:"過去の形は、話す人の性で語尾が変わる。型： śpiewa- ＋ łem ＝ śpiewałem（私・男が歌った）／ ＋ łam ＝ śpiewałam（私・女）。",
+pl19:"動詞には2種類ある：途中・繰り返しを言う形と、やり遂げたことを言う形。例： pisać（書いている）→ napisać（書き上げる）。"};
+function plainDesc(g){return PLAIN[g.id]||g.desc;}
+// ---------- chunk cards: grammar forms as word-like chunks [form, ja, ipa] ----------
+var CHUNKS={
+f02:[["le fauteuil","その肘掛け椅子（男の言葉）","/lə fotœj/"],["la bergère","その羊飼い女（女の言葉）","/la bɛʁʒɛʁ/"],["l'horloge","その時計（女の言葉）","/lɔʁlɔʒ/"],["le livre","その本（男の言葉）","/lə livʁ/"],["la page","そのページ（女の言葉）","/la paʒ/"],["les chats","その猫たち（複数）","/le ʃa/"]],
+f04:[["je suis","私は〜です","/ʒə sɥi/"],["tu es","君は〜です","/ty ɛ/"],["il est","彼は〜です","/il ɛ/"],["elle est","彼女は〜です","/ɛl ɛ/"],["nous sommes","私たちは〜です","/nu sɔm/"],["vous êtes","あなたは〜です","/vu zɛt/"],["ils sont","彼らは〜です","/il sɔ̃/"],["elles sont","彼女たちは〜です","/ɛl sɔ̃/"],["j'ai","私には〜がある","/ʒe/"],["tu as","君には〜がある","/ty a/"],["il a","彼には〜がある","/il a/"],["nous avons","私たちには〜がある","/nu zavɔ̃/"],["vous avez","あなたには〜がある","/vu zave/"],["ils ont","彼らには〜がある","/il zɔ̃/"]],
+f05:[["je parle","私は話す","/ʒə paʁl/"],["tu parles","君は話す","/ty paʁl/"],["il parle","彼は話す","/il paʁl/"],["nous parlons","私たちは話す","/nu paʁlɔ̃/"],["vous parlez","あなたは話す","/vu paʁle/"],["ils parlent","彼らは話す","/il paʁl/"]],
+f08:[["je finis","私は終える","/ʒə fini/"],["tu finis","君は終える","/ty fini/"],["il finit","彼は終える","/il fini/"],["nous finissons","私たちは終える","/nu finisɔ̃/"],["vous finissez","あなたは終える","/vu finise/"],["ils finissent","彼らは終える","/il finis/"]],
+f09:[["je vends","私は売る","/ʒə vɑ̃/"],["tu vends","君は売る","/ty vɑ̃/"],["il vend","彼は売る","/il vɑ̃/"],["nous vendons","私たちは売る","/nu vɑ̃dɔ̃/"],["vous vendez","あなたは売る","/vu vɑ̃de/"],["ils vendent","彼らは売る","/il vɑ̃d/"]],
+f10:[["je vais","私は行く","/ʒə vɛ/"],["tu vas","君は行く","/ty va/"],["il va","彼は行く","/il va/"],["nous allons","私たちは行く","/nu zalɔ̃/"],["vous allez","あなたは行く","/vu zale/"],["ils vont","彼らは行く","/il vɔ̃/"],["je fais","私はする","/ʒə fɛ/"],["tu fais","君はする","/ty fɛ/"],["il fait","彼はする","/il fɛ/"],["nous faisons","私たちはする","/nu fəzɔ̃/"],["vous faites","あなたはする","/vu fɛt/"],["ils font","彼らはする","/il fɔ̃/"]],
+f11:[["méchant","意地悪な（男の言葉に）","/meʃɑ̃/"],["méchante","意地悪な（女の言葉に）","/meʃɑ̃t/"],["bonne","良い（女の言葉に）","/bɔn/"],["petite","小さい（女の言葉に）","/pətit/"],["verte","緑の（女の言葉に）","/vɛʁt/"],["chinoise","中国の（女の言葉に）","/ʃinwaz/"]],
+f12:[["mon livre","私の本（男の物）","/mɔ̃ livʁ/"],["ma page","私のページ（女の物）","/ma paʒ/"],["mes livres","私の本たち（複数）","/me livʁ/"],["ton livre","君の本","/tɔ̃ livʁ/"],["ta page","君のページ","/ta paʒ/"],["cette tasse","この茶碗（女）","/sɛt tas/"],["ce fauteuil","この椅子（男）","/sə fotœj/"],["ces chats","これらの猫","/se ʃa/"]],
+f14:[["au jardin","庭へ・庭に（à + le）","/o ʒaʁdɛ̃/"],["aux chats","猫たちへ（à + les）","/o ʃa/"],["du fauteuil","その椅子の（de + le）","/dy fotœj/"],["des bergères","羊飼い女たちの（de + les）","/de bɛʁʒɛʁ/"]],
+f15:[["je vais chercher","私は探しに行くところ","/ʒə vɛ ʃɛʁʃe/"],["tu vas chercher","君は探しに行くところ","/ty va ʃɛʁʃe/"],["je viens de casser","私は壊したばかり","/ʒə vjɛ̃ də kase/"],["il vient de casser","彼は壊したばかり","/il vjɛ̃ də kase/"]],
+f16:[["j'ai parlé","私は話した","/ʒe paʁle/"],["tu as parlé","君は話した","/ty a paʁle/"],["il a pansé","彼は手当てした","/il a pɑ̃se/"],["elle a pansé","彼女は手当てした","/ɛl a pɑ̃se/"]],
+f17:[["je cherchais","私は探していた","/ʒə ʃɛʁʃɛ/"],["tu cherchais","君は探していた","/ty ʃɛʁʃɛ/"],["il cherchait","彼は探していた","/il ʃɛʁʃɛ/"],["nous cherchions","私たちは探していた","/nu ʃɛʁʃjɔ̃/"]],
+f18:[["je parlerai","私は話すだろう","/ʒə paʁləʁe/"],["tu parleras","君は話すだろう","/ty paʁləʁa/"],["il parlera","彼は話すだろう","/il paʁləʁa/"],["nous parlerons","私たちは話すだろう","/nu paʁləʁɔ̃/"]],
+f19:[["parle","話して！（君へ言う命令）","/paʁl/"],["rends","返して！（君へ）","/ʁɑ̃/"],["cherchez","探して！（あなたたちへ）","/ʃɛʁʃe/"],["partons","出発しよう！（私たち）","/paʁtɔ̃/"]],
+f20:[["je le cherche","私は彼を・それを探す","/ʒə lə ʃɛʁʃ/"],["je la cherche","私は彼女を探す","/ʒə la ʃɛʁʃ/"],["je te cherche","私は君を探す","/ʒə tə ʃɛʁʃ/"],["je lui parle","私は彼に・彼女に話す","/ʒə lɥi paʁl/"]],
+f22:[["je voudrais","〜がほしいのですが","/ʒə vudʁɛ/"],["tu voudrais","君は〜したいだろう","/ty vudʁɛ/"],["il voudrait","彼は〜したいだろう","/il vudʁɛ/"],["je parlerais","私は話すだろう（柔らかく）","/ʒə paʁləʁɛ/"]],
+pl4:[["smutny","悲しい（男の言葉に）","/ˈsmutnɨ/"],["smutna","悲しい（女の言葉に）","/ˈsmutna/"],["smutne","悲しい（中性の言葉に）","/ˈsmutnɛ/"],["piękny","美しい（男の言葉に）","/ˈpjɛŋknɨ/"],["piękna","美しい（女の言葉に）","/ˈpjɛŋkna/"],["piękne","美しい（中性の言葉に）","/ˈpjɛŋknɛ/"]],
+pl6:[["rzeki","川の（『〜の』の形）","/ˈʐɛki/"],["chłopca","少年の","/ˈxwɔptsa/"],["okna","窓の","/ˈɔkna/"],["oczu","目（複数）の","/ˈɔtʂu/"],["rzekę","川を・川へ","/ˈʐɛkɛ̃/"],["rzeką","川と一緒に・川で","/ˈʐɛkɔ̃/"]],
+pl15:[["kocham","私は愛する","/ˈkɔxam/"],["kochasz","君は愛する","/ˈkɔxaʂ/"],["kocha","彼・彼女は愛する","/ˈkɔxa/"],["kochamy","私たちは愛する","/kɔˈxamɨ/"],["kochacie","あなたたちは愛する","/kɔˈxatɕɛ/"],["kochają","彼らは愛する","/kɔˈxajɔ̃/"]],
+pl16:[["piszę","私は書く","/ˈpiʂɛ̃/"],["piszesz","君は書く","/ˈpiʂɛʂ/"],["pisze","彼・彼女は書く","/ˈpiʂɛ/"],["piszemy","私たちは書く","/piˈʂɛmɨ/"],["piszecie","あなたたちは書く","/piˈʂɛtɕɛ/"],["piszą","彼らは書く","/ˈpiʂɔ̃/"]],
+pl17:[["mówię","私は話す","/ˈmuvjɛ̃/"],["mówisz","君は話す","/ˈmuviʂ/"],["mówi","彼・彼女は話す","/ˈmuvi/"],["pracuję","私は働く","/praˈtʂujɛ̃/"],["pracujesz","君は働く","/praˈtʂujɛʂ/"],["pracuje","彼・彼女は働く","/praˈtʂujɛ/"]],
+pl18:[["śpiewałem","私（男）が歌った","/ɕpjɛˈvawɛm/"],["śpiewałam","私（女）が歌った","/ɕpjɛˈvawam/"],["śpiewałeś","君（男）が歌った","/ɕpjɛˈvawɛɕ/"],["śpiewałaś","君（女）が歌った","/ɕpjɛˈvawaɕ/"],["śpiewał","彼が歌った","/ˈɕpjɛvaw/"],["śpiewała","彼女が歌った","/ɕpjɛˈvawa/"]]
+};
+function chunksForLesson(lid){
+  if(CHUNKS[lid])return CHUNKS[lid].map(function(c){return {form:c[0],ja:c[1],ipa:c[2]||""};});
+  var lo=grammars().find(function(x){return x.id===lid});var out=[];
+  if(lo&&lo.examples)lo.examples.forEach(function(e){out.push({form:e.w,ja:e.ja,ipa:e.ipa||""});});
+  var ms=MODELS[lid];if(ms)ms.forEach(function(m){out.push({form:m[0],ja:m[1],ipa:"",note:m[2]});});
+  return out;
+}
+function vocabForLesson(lid){
+  var ms=MODELS[lid];if(ms&&ms.length)return ms.map(function(m){return {form:m[0],ja:m[1],ipa:"",note:m[2]};});
+  var lo=grammars().find(function(x){return x.id===lid});
+  if(lo&&lo.examples)return lo.examples.map(function(e){return {form:e.w,ja:e.ja,ipa:e.ipa||""};});
+  return chunksForLesson(lid);
+}
+// ---------- unified lesson flow: (1) micro chunks -> (2) vocab -> (3) drill -> (4) text ----------
+var FLOW=null,pendingTextStep=null;
+function flowChips(active){
+  var labels=["① 形の叩き込み","② 単語練習","③ ドリル","④ テクスト読解"];
+  return '<div class="flowchips">'+labels.map(function(l,i){return '<span class="flowchip'+(i<active?" done":i===active?" now":"")+'">'+l+'</span>';}).join("")+'</div>';
+}
+function buildChunkSteps(chunks){
+  var steps=[];
+  for(var i=0;i<chunks.length;i+=4){
+    var grp=chunks.slice(i,i+4);
+    grp.forEach(function(c){steps.push({type:"card",c:c});});
+    grp.forEach(function(c){steps.push({type:"blank",c:c,grp:grp});});
+  }
+  if(chunks.length>4){var mix=shuffle(chunks.slice()).slice(0,4);mix.forEach(function(c){steps.push({type:"blank",c:c,grp:chunks});});}
+  return steps;
+}
+function startFlow(cfg){
+  FLOW=cfg;show("view-lesson");
+  if(cfg.fromPhase==="vocab"){runVocabPhase();return;}
+  if(cfg.fromPhase==="text"){pendingTextStep=null;renderTextStep(cfg.text);return;}
+  runMicroPhase();
+}
+function runMicroPhase(){
+  lesson={kind:"flow",phase:"micro",steps:buildChunkSteps(FLOW.chunks),idx:0,score:0,flipped:false,sel:null,checked:null};
+  renderMicro();
+}
+function tableToggleHTML(){
+  return '<div class="toolrow"><button class="toolbtn chunky" onclick="toggleTable()">📊 表を見る</button></div><div id="tableArea" class="hidden"><div class="hintbox"><p style="margin:0 0 4px"><b>📊 変化表</b>（確認用 — 必要なときだけ開く）</p>'+paradigmHTML()+'</div></div>';
+}
+function renderMicro(){
+  var s=lesson.steps[lesson.idx];
+  var pct=Math.round(lesson.idx/Math.max(1,lesson.steps.length)*25);
+  lessonHead("① 形の叩き込み","var(--purple)",FLOW.title,"",6+pct);
+  var head=flowChips(0)+'<p class="stepcount">ステップ '+(lesson.idx+1)+' / '+lesson.steps.length+' ・ あと '+(lesson.steps.length-lesson.idx-1)+' ステップで単語練習へ</p>';
+  if(s.type==="card"){
+    var c=s.c;
+    document.getElementById("lessonBody").innerHTML=head
+      +'<div class="flashwrap"><button class="chunkcard card" onclick="flipFlowCard()" aria-label="カードをめくる">'
+      +(lesson.flipped
+        ?'<span class="cj">'+c.ja+'</span>'+(c.note?'<span class="cn">'+c.note+'</span>':"")
+        :'<span class="cw">'+c.form+'</span>'+(c.ipa?'<span class="ci">'+c.ipa+'</span>':"")+'<span class="ch">タップで意味を表示</span>')
+      +'</button>'
+      +'<div class="cardnav"><span></span><button class="speaksm chunky" style="padding:9px 20px" onclick="speakWord(\''+esc(c.form)+'\')">🔊 音声</button><span></span></div>'
+      +'<button class="bigbtn chunky" style="background:var(--purple);border-color:var(--purpleD)" '+(lesson.flipped?'onclick="nextMicro()"':"disabled")+'>'+(lesson.idx+1>=lesson.steps.length?"単語練習へ →":"覚えた → 次へ")+'</button></div>'
+      +tableToggleHTML();
+  }else{
+    var bc=s.c,grp=s.grp||[bc];
+    var toks=bc.form.split(" ");
+    var useBlank=toks.length>=2;
+    var lastTok=toks[toks.length-1];
+    if(lesson._cIdx===lesson.idx&&lesson._choices){useBlank=lesson._useBlank;}
+    else{
+      var chSet=[];grp.forEach(function(g2){var t=g2.form.split(" ");var v=useBlank?t[t.length-1]:g2.form;if(chSet.indexOf(v)<0)chSet.push(v);});
+      if(chSet.length<2){useBlank=false;chSet=[];grp.forEach(function(g2){if(chSet.indexOf(g2.form)<0)chSet.push(g2.form);});}
+      if(chSet.indexOf(useBlank?lastTok:bc.form)<0)chSet.push(useBlank?lastTok:bc.form);
+      lesson._choices=shuffle(chSet.slice(0,4));lesson._useBlank=useBlank;lesson._cIdx=lesson.idx;
+    }
+    var choices=lesson._choices;
+    var disp=useBlank?toks.slice(0,-1).join(" ")+' <span class="blank">( ? )</span>':"『"+bc.ja+"』 はどれ？";
+    var choicesHtml=choices.map(function(ch,i){
+      var cls="choicebtn chunky";
+      if(lesson.checked!==null){if(ch===(useBlank?lastTok:bc.form))cls+=" ans";else if(lesson.checked===false&&ch===lesson.sel)cls+=" wrongsel";}
+      else if(ch===lesson.sel)cls+=" sel";
+      return '<button class="'+cls+'" '+(lesson.checked!==null?"disabled":'onclick="selectFlowBlank('+i+',\''+esc(ch)+'\')"')+'>'+ch+'</button>';
+    }).join("");
+    var bottom="";
+    if(lesson.checked===null){
+      bottom='<button class="bigbtn chunky" style="background:var(--green);border-color:var(--greenD)" '+(lesson.sel===null?"disabled":'onclick="checkFlowBlank(\''+esc(useBlank?lastTok:bc.form)+'\')"')+'>チェック</button>';
+    }else{
+      var ok=lesson.checked;
+      bottom='<div class="fbpanel '+(ok?"anim-pop":"anim-shake")+'" style="background:'+(ok?"var(--okBg)":"var(--badBg)")+'"><p class="ft" style="color:'+(ok?"var(--okText)":"var(--badText)")+'">'+(ok?"🎉 正解！":"😿 ざんねん…")+'</p><p class="fe"><b>'+bc.form+'</b> ＝ '+bc.ja+'</p><button class="speaksm chunky" onclick="speakWord(\''+esc(bc.form)+'\')">🔊 答えを聞く</button><button class="nextbtn chunky" style="background:'+(ok?"var(--green)":"var(--red)")+';border-color:'+(ok?"var(--greenD)":"var(--redD)")+'" onclick="nextMicro()">'+(lesson.idx+1>=lesson.steps.length?"単語練習へ →":"つぎへ →")+'</button></div>';
+    }
+    document.getElementById("lessonBody").innerHTML=head
+      +'<div class="qcard card"><p class="qsub" style="margin:0">空所補充 — 『'+bc.ja+'』</p><p class="blankdisp">'+disp+'</p><div class="choices">'+choicesHtml+'</div></div>'
+      +bottom+tableToggleHTML();
+    lesson._choices=choices;
+  }
+  animStep();
+}
+function flipFlowCard(){lesson.flipped=true;renderMicro();}
+function selectFlowBlank(i,ch){lesson.sel=ch;renderMicro();}
+function checkFlowBlank(ans){lesson.checked=(lesson.sel===ans);if(lesson.checked)lesson.score++;renderMicro();}
+function nextMicro(){
+  lesson.idx++;lesson.flipped=false;lesson.sel=null;lesson.checked=null;lesson._choices=null;lesson._cIdx=-1;
+  if(lesson.idx>=lesson.steps.length){runVocabPhase();}else renderMicro();
+}
+function runVocabPhase(){
+  lesson={kind:"flow",phase:"vocab",items:(FLOW.vocab||[]).slice(),idx:0,flipped:false,sel:null,checked:null,mode:"card"};
+  if(!lesson.items.length){runDrillPhase();return;}
+  renderVocabStep();
+}
+function renderVocabStep(){
+  var v=lesson.items[lesson.idx];
+  lessonHead("② 単語練習","var(--blue)",FLOW.title,"",31+Math.round(lesson.idx/Math.max(1,lesson.items.length)*22));
+  var head=flowChips(1)+'<p class="stepcount">単語 '+(lesson.idx+1)+' / '+lesson.items.length+' ・ あと '+(lesson.items.length-lesson.idx-1)+' 語でドリルへ</p>';
+  var lastOne=lesson.idx+1>=lesson.items.length;
+  if(lesson.mode==="card"){
+    document.getElementById("lessonBody").innerHTML=head
+      +'<div class="flashwrap"><button class="chunkcard card" onclick="flipVocabCard()" aria-label="カードをめくる">'
+      +(lesson.flipped
+        ?'<span class="cj">'+v.ja+'</span>'+(v.note?'<span class="cn">'+v.note+'</span>':"")
+        :'<span class="cw">'+v.form+'</span>'+(v.ipa?'<span class="ci">'+v.ipa+'</span>':"")+'<span class="ch">タップで意味を表示</span>')
+      +'</button>'
+      +'<div class="cardnav"><span></span><button class="speaksm chunky" style="padding:9px 20px" onclick="speakWord(\''+esc(v.say||v.form)+'\')">🔊 音声</button><span></span></div>'
+      +'<button class="bigbtn chunky" style="background:var(--blue);border-color:var(--blueD)" '+(lesson.flipped?'onclick="vocabToChoice()"':"disabled")+'>意味を確認する →</button></div>';
+  }else{
+    var others=shuffle(lesson.items.filter(function(x){return x!==v}).map(function(x){return x.ja}));
+    if(!lesson._choices)lesson._choices=shuffle([v.ja].concat(others.slice(0,3)));
+    var choicesHtml=lesson._choices.map(function(ch,i){
+      var cls="choicebtn chunky";
+      if(lesson.checked!==null){if(ch===v.ja)cls+=" ans";else if(lesson.checked===false&&ch===lesson.sel)cls+=" wrongsel";}
+      else if(ch===lesson.sel)cls+=" sel";
+      return '<button class="'+cls+'" '+(lesson.checked!==null?"disabled":'onclick="selectVocabChoice(\''+esc(ch)+'\')"')+'>'+ch+'</button>';
+    }).join("");
+    var bottom="";
+    if(lesson.checked===null){
+      bottom='<button class="bigbtn chunky" style="background:var(--green);border-color:var(--greenD)" '+(lesson.sel===null?"disabled":'onclick="checkVocabChoice()"')+'>チェック</button>';
+    }else{
+      var ok=lesson.checked;
+      bottom='<div class="fbpanel '+(ok?"anim-pop":"anim-shake")+'" style="background:'+(ok?"var(--okBg)":"var(--badBg)")+'"><p class="ft" style="color:'+(ok?"var(--okText)":"var(--badText)")+'">'+(ok?"🎉 正解！":"😿 ざんねん…")+'</p><p class="fe"><b>'+v.form+'</b> ＝ '+v.ja+'</p><button class="speaksm chunky" onclick="speakWord(\''+esc(v.say||v.form)+'\')">🔊 音声</button><button class="nextbtn chunky" style="background:'+(ok?"var(--green)":"var(--red)")+';border-color:'+(ok?"var(--greenD)":"var(--redD)")+'" onclick="nextVocab()">'+(lastOne?"ドリルへ →":"つぎへ →")+'</button></div>';
+    }
+    document.getElementById("lessonBody").innerHTML=head
+      +'<div class="qcard card"><div class="qhead"><div><p class="qprompt" style="margin:0">'+v.form+'</p><p class="qsub">意味は？</p></div><button class="speaksm chunky" style="padding:9px 16px" onclick="speakWord(\''+esc(v.say||v.form)+'\')">🔊</button></div><div class="choices">'+choicesHtml+'</div></div>'
+      +bottom;
+  }
+  animStep();
+}
+function flipVocabCard(){lesson.flipped=true;renderVocabStep();}
+function vocabToChoice(){lesson.mode="choice";lesson._choices=null;renderVocabStep();}
+function selectVocabChoice(ch){lesson.sel=ch;renderVocabStep();}
+function checkVocabChoice(){var v=lesson.items[lesson.idx];lesson.checked=(lesson.sel===v.ja);renderVocabStep();}
+function nextVocab(){
+  lesson.idx++;lesson.flipped=false;lesson.sel=null;lesson.checked=null;lesson.mode="card";lesson._choices=null;
+  if(lesson.idx>=lesson.items.length){runDrillPhase();}else renderVocabStep();
+}
+function runDrillPhase(){
+  pendingTextStep=FLOW.text;
+  if(FLOW.drill==="goal"){startGoalDrill();}
+  else if(FLOW.drill==="quiz"){startQuiz();}
+  else{curG=FLOW.grammarObj;startDrill();}
+}
+function textDistractors(t){
+  var out=[];
+  goals().forEach(function(g){if(g.quoteJa&&g.quoteJa!==t.ja&&out.indexOf(g.quoteJa)<0)out.push(g.quoteJa);});
+  units().forEach(function(u){if(u.note&&u.note!==t.ja&&out.indexOf(u.note)<0)out.push(u.note);});
+  return shuffle(out).slice(0,2);
+}
+function splitQuoteSentences(q){
+  var raw=(q||"").replace(/[«»]/g," ").trim();
+  var parts=raw.split(/\s+\/\s+/);
+  var out=[];
+  parts.forEach(function(p){
+    var ms=p.match(/[^.!?…。]+[.!?…。]?/g);
+    if(ms)ms.forEach(function(s2){var t2=s2.trim();if(t2)out.push(t2);});
+    else if(p.trim())out.push(p.trim());
+  });
+  return out.length?out:[raw];
+}
+function renderTextStep(t){
+  var keepPage=(lesson&&lesson.kind==="textstep"&&lesson.text===t)?(lesson.textPage||0):0;
+  lesson={kind:"textstep",sel:null,checked:null,text:t};
+  lesson.textPages=splitQuoteSentences(t.quote);
+  lesson.textPage=Math.min(keepPage,lesson.textPages.length-1);
+  lesson._choices=shuffle([t.ja].concat(textDistractors(t)));
+  show("view-lesson");
+  drawTextStep();
+}
+function drawTextStep(){
+  var t=lesson.text;if(!t)return;
+  lessonHead("④ テクスト読解","var(--orange)",FLOW?FLOW.title:"","",96);
+  var pages=lesson.textPages||[t.quote];
+  var pg=Math.min(lesson.textPage||0,pages.length-1);lesson.textPage=pg;
+  var cur=pages[pg],isLast=pg>=pages.length-1,multi=pages.length>1;
+  var h=flowChips(3);
+  h+='<div class="card quotecard"><p class="qt">🎭 テクスト — 最後に読む'+(multi?"（文 "+(pg+1)+" / "+pages.length+"）":"")+'</p><p class="qf">'+glossHTML(cur)+'</p>'+glossToggleHTML()+'<button class="speakbtn chunky" onclick="speak(\''+esc(cur)+'\')">'+(multi?"🔊 この文を聞く":"🔊 全文を聞く")+'</button><p class="qs">点線の単語は未習得の言葉。タップで意味が出ます。</p></div>';
+  if(multi){
+    h+='<div class="textpager"><button class="navbtn chunky" '+(pg<=0?"disabled":'onclick="textPageGo(-1)"')+'>← 前の文</button><span class="pcount" style="font-size:14px;color:var(--dim);font-weight:700">'+(pg+1)+' / '+pages.length+' 文</span>'+(isLast?'<span></span>':'<button class="navbtn chunky" onclick="textPageGo(1)">次の文 →</button>')+'</div>';
+  }
+  if(isLast){
+    var choicesHtml=lesson._choices.map(function(ch,i){
+      return '<button class="choicebtn chunky" id="tc'+i+'" onclick="selectTextChoice('+i+')">'+ch+'</button>';
+    }).join("");
+    h+='<div class="qcard card"><p class="qprompt" style="margin:0">'+(t.q||"この文の意味・場面はどれ？")+'</p><div class="choices">'+choicesHtml+'</div></div>'
+      +'<div id="textFb"></div>'
+      +'<button class="bigbtn chunky" id="textCheckBtn" style="background:var(--green);border-color:var(--greenD)" disabled onclick="checkTextStep()">チェック</button>';
+  }else{
+    h+='<button class="bigbtn chunky" style="background:var(--orange);border-color:var(--orangeD)" onclick="textPageGo(1)">次の文へ →</button>';
+  }
+  document.getElementById("lessonBody").innerHTML=h;
+  animStep();
+}
+function textPageGo(d){if(!lesson||lesson.kind!=="textstep")return;lesson.textPage=(lesson.textPage||0)+d;lesson.sel=null;lesson.checked=null;drawTextStep();}
+function selectTextChoice(i){
+  if(lesson.checked!==null)return;lesson.sel=lesson._choices[i];
+  lesson._choices.forEach(function(ch,k){var b=document.getElementById("tc"+k);if(b)b.classList.toggle("sel",k===i);});
+  var cb=document.getElementById("textCheckBtn");if(cb)cb.disabled=false;
+}
+function checkTextStep(){
+  if(lesson.checked!==null||lesson.sel===null)return;
+  var t=lesson.text;var ok=lesson.sel===t.ja;lesson.checked=ok;
+  if(ok){st().xp+=10;save();}
+  lesson._choices.forEach(function(ch,k){var b=document.getElementById("tc"+k);if(!b)return;b.disabled=true;if(ch===t.ja)b.classList.add("ans");else if(ch===lesson.sel)b.classList.add("wrongsel");});
+  var cb=document.getElementById("textCheckBtn");if(cb)cb.style.display="none";
+  document.getElementById("textFb").innerHTML='<div class="fbpanel '+(ok?"anim-pop":"anim-shake")+'" style="background:'+(ok?"var(--okBg)":"var(--badBg)")+'"><p class="ft" style="color:'+(ok?"var(--okText)":"var(--badText)")+'">'+(ok?"🎉 正解！テクストが読めました":"😿 ざんねん…意味は『"+t.ja+"』でした")+'</p><p class="fe">これでレッスン完了です。文の形は ① のカードで練習したものばかりでした。</p><button class="nextbtn chunky" style="background:var(--orange);border-color:var(--orangeD)" onclick="finishTextStep()">完了する →</button></div>';
+}
+function finishTextStep(){
+  var back=FLOW?FLOW.back:"home";
+  FLOW=null;
+  if(back==="goal"&&curGoal){openGoal(curGoal.id);}
+  else if(back==="unit"&&curUnit){openUnit(curUnit.id);}
+  else if(back==="grammar"){showGrammar();}
+  else goHome();
+}
+function setUnitTab(tab){
+  var l=document.getElementById("unitTabLesson"),v=document.getElementById("unitVocabSections");
+  var bl=document.getElementById("utabLesson"),bv=document.getElementById("utabVocab");
+  if(!l||!v)return;
+  var vocabOn=tab==="vocab";
+  l.classList.toggle("hidden",vocabOn);v.classList.toggle("hidden",!vocabOn);
+  if(bl)bl.classList.toggle("on",!vocabOn);if(bv)bv.classList.toggle("on",vocabOn);
+}
+function startUnitFlow(){
+  if(!curUnit)return;
+  var chunks=curUnit.vocab.map(function(v){return {form:v.w,ja:v.ja,ipa:v.ipa||""};});
+  var vocab=curUnit.vocab.map(function(v){return {form:v.w,ja:v.ja,ipa:v.ipa||"",say:v.w};});
+  curG={id:"unit"+curUnit.id,title:"Unit "+curUnit.id+" "+curUnit.title};
+  startFlow({title:"Unit "+curUnit.id+" "+curUnit.title,chunks:chunks,vocab:vocab,drill:"quiz",text:{quote:curUnit.quote,ja:curUnit.note},back:"unit"});
+}
+function startUnitQuiz(){pendingTextStep=null;startQuiz();}
 // ---------- press feel: pointerdown pop / vibrate / pressed ----------
 var __actx=null;
 function __ensureAudio(){try{if(!__actx){var AC=window.AudioContext||window.webkitAudioContext;if(AC)__actx=new AC();}if(__actx&&__actx.state==="suspended")__actx.resume();}catch(e){}}
