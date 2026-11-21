@@ -10,21 +10,28 @@
 <style>
 :root{color-scheme:light;--bg:#f7f7f7;--surface:#ffffff;--text:#3c3c3c;--dim:#6b6b6b;--border:#e5e5e5;--track:#e5e5e5;--inset:#f0f0f0;--green:#58cc02;--greenD:#46a302;--blue:#1cb0f6;--blueD:#1899d6;--pink:#ff4b82;--pinkD:#e63a6e;--yellow:#ffc800;--orange:#ff9600;--orangeD:#e08600;--red:#ff4b4b;--redD:#d63a3a;--purple:#a560e0;--purpleD:#8c4ec7;--gray:#afafaf;--grayD:#8f8f8f;--quoteBg:#fffbe6;--quoteBorder:#ffe08a;--quoteTitle:#8a6100;--noteBg:rgba(255,255,255,.7);--okBg:#d7ffb8;--okText:#357a00;--badBg:#ffdfe0;--badText:#c22730;--selBg:#ddf4ff;--chipXpBg:#fff3c4;--chipXpTx:#8a6100;--chipTrBg:#d7ffb8;--chipTrTx:#357a00;--chipAcBg:#ddf4ff;--chipAcTx:#0b6f9e;--xpText:#d97a00;--startText:#c96a00;--stem:#1cb0f6;--end:#ff9600;--neut:#58cc02}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#131f24;--surface:#1f2a30;--text:#f0f0f0;--dim:#b3c2cc;--border:#37464f;--track:#37464f;--inset:#2b3a42;--quoteBg:#2e2a12;--quoteBorder:#6b5d1e;--quoteTitle:#ffd93d;--noteBg:rgba(255,255,255,.08);--okBg:#1e3a12;--okText:#8ee06a;--badBg:#402027;--badText:#ff9dab;--selBg:#14405a;--chipXpBg:#3a2f05;--chipXpTx:#ffd93d;--chipTrBg:#1e3a12;--chipTrTx:#8ee06a;--chipAcBg:#14405a;--chipAcTx:#7dd8ff;--xpText:#ffbe55;--startText:#ffb84d}}
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.55}
 .fr{font-family:"M PLUS Rounded 1c",system-ui,sans-serif}
-button{font-family:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 button:disabled{cursor:not-allowed}
+button:focus{outline:none}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .hidden{display:none!important}
 .page{max-width:600px;margin:0 auto;padding:0 16px 64px}
-.chunky{border:2px solid var(--border);border-bottom-width:4px;border-radius:16px;transition:transform .08s,filter .08s}
-.chunky:active{transform:translateY(2px);border-bottom-width:2px}
+.chunky{border:2px solid var(--border);border-bottom-width:4px;border-radius:16px;transition:transform .16s cubic-bezier(.34,1.56,.64,1),border-bottom-width .12s ease,box-shadow .16s cubic-bezier(.34,1.56,.64,1),filter .12s ease;touch-action:manipulation}
+.chunky:active,.chunky.pressed{transform:translateY(4px);border-bottom-width:0;box-shadow:0 0 0 rgba(0,0,0,0)}
+button:not(.chunky):not(.langbtn){transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease}
+button:not(.chunky):not(.langbtn):active,button:not(.chunky):not(.langbtn).pressed{transform:scale(.97)}
+.choicebtn.pressed{border-color:var(--blue);background:var(--selBg)}
+.view-enter{animation:viewIn .23s ease both}
+@keyframes viewIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
 .card{border:2px solid var(--border);border-bottom-width:4px;border-radius:16px;background:var(--surface)}
 .dim{color:var(--dim)}
 /* language toggle (honke: two big chunky buttons) */
 .langrow{display:flex;gap:8px;padding-top:12px}
-.langbtn{flex:1;border:2px solid var(--grayD);border-bottom-width:4px;border-radius:16px;padding:10px 8px;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;font-weight:800;font-size:15px;color:#fff;background:var(--gray);transition:transform .08s}
-.langbtn:active{transform:translateY(2px);border-bottom-width:2px}
+.langbtn{flex:1;border:2px solid var(--grayD);border-bottom-width:4px;border-radius:16px;padding:10px 8px;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;font-weight:800;font-size:15px;color:#fff;background:var(--gray);transition:transform .16s cubic-bezier(.34,1.56,.64,1),border-bottom-width .12s ease,box-shadow .16s ease;touch-action:manipulation}
+.langbtn:active,.langbtn.pressed{transform:translateY(4px);border-bottom-width:0;box-shadow:0 0 0 rgba(0,0,0,0)}
 .langbtn.on-fr{background:var(--blue);border-color:var(--blueD)}
 .langbtn.on-pl{background:#d32f2f;border-color:#a82323}
 /* stats header */
@@ -356,7 +363,7 @@ function speakWord(w){ // 見出し語だけを読み上げる（IPA・訳・注
 }
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function setLang(l){lang=l;document.getElementById("btnFR").className="langbtn"+(l==="fr"?" on-fr":"");document.getElementById("btnPL").className="langbtn"+(l==="pl"?" on-pl":"");curUnit=null;curG=null;renderHome();}
-function show(id){["view-home","view-unit","view-lesson"].forEach(function(v){document.getElementById(v).classList.toggle("hidden",v!==id);});window.scrollTo({top:0});}
+function show(id){["view-home","view-unit","view-lesson"].forEach(function(v){var el=document.getElementById(v);var on=v===id;el.classList.toggle("hidden",!on);el.classList.remove("view-enter");if(on){void el.offsetWidth;el.classList.add("view-enter");}});window.scrollTo({top:0});}
 function goHome(){renderHome();}
 function showGrammar(){renderHome();var el=document.getElementById("grammarArea");if(el)setTimeout(function(){el.scrollIntoView({behavior:"smooth",block:"start"});},60);}
 var OFFSETS=[0,48,84,48,0,-48,-84,-48];
@@ -841,6 +848,16 @@ function resetProgress(btn){
   if(!resetArmed){resetArmed=true;btn.textContent="本当にリセット？ もう一度タップで確定";setTimeout(function(){resetArmed=false;btn.textContent=(lang==="fr"?"フランス語":"ポーランド語")+"の進捗をリセットする";},3500);return;}
   store[lang]={xp:0,done:{},gdone:{}};save();resetArmed=false;renderHome();
 }
+
+// ---------- press feel: pointerdown pop / vibrate / pressed ----------
+var __actx=null;
+function __ensureAudio(){try{if(!__actx){var AC=window.AudioContext||window.webkitAudioContext;if(AC)__actx=new AC();}if(__actx&&__actx.state==="suspended")__actx.resume();}catch(e){}}
+function __isSpeakBtn(btn){if(!btn)return false;if(btn.id==="quoteSpeak")return true;if(btn.classList&&(btn.classList.contains("speaksm")||btn.classList.contains("speakbtn")))return true;var oc=btn.getAttribute?btn.getAttribute("onclick"):null;if(oc&&oc.indexOf("speak")>=0)return true;var al=btn.getAttribute?btn.getAttribute("aria-label"):null;if(al&&(al.indexOf("発音")>=0||al.indexOf("聞く")>=0))return true;return false;}
+function __playPop(btn){if(__isSpeakBtn(btn))return;try{if(window.speechSynthesis&&speechSynthesis.speaking)return;}catch(e){}__ensureAudio();if(!__actx)return;try{var t=__actx.currentTime;var o=__actx.createOscillator();var g=__actx.createGain();o.type="sine";o.frequency.setValueAtTime(520,t);o.frequency.exponentialRampToValueAtTime(180,t+0.07);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.11,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.09);o.connect(g);g.connect(__actx.destination);o.start(t);o.stop(t+0.1);}catch(e){}}
+function __clearPressed(){var els=document.querySelectorAll(".pressed");for(var i=0;i<els.length;i++)els[i].classList.remove("pressed");}
+document.addEventListener("pointerdown",function(e){var btn=e.target&&e.target.closest?e.target.closest("button"):null;if(!btn||btn.disabled)return;__ensureAudio();btn.classList.add("pressed");if(btn.classList.contains("choicebtn")){var wrap=btn.closest?btn.closest(".choices"):null;if(wrap){var sibs=wrap.querySelectorAll(".choicebtn");for(var i=0;i<sibs.length;i++){if(sibs[i]!==btn)sibs[i].classList.remove("sel");}}btn.classList.add("sel");}__playPop(btn);try{if(navigator.vibrate)navigator.vibrate(10);}catch(err){}},{passive:true});
+document.addEventListener("pointerup",function(){setTimeout(__clearPressed,70);},{passive:true});
+document.addEventListener("pointercancel",__clearPressed,{passive:true});
 
 renderHome();
 </script>
